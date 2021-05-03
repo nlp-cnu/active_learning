@@ -12,7 +12,6 @@ from tensorflow.keras import Model, Sequential
 from tensorflow.keras.callbacks import *
 from tensorflow.keras.layers import *
 from tensorflow.keras.metrics import Recall, Precision
-from tensorflow_addons.metrics import F1Score
 from transformers import TFAutoModel, AutoTokenizer
 
 # Fix TF for my computer
@@ -22,6 +21,30 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 # Transformer models
 BIO_BERT = 'cambridgeltl/BioRedditBERT-uncased'
 BERTWEET = 'vinai/bertweet-base'
+
+
+class PositiveF1Score(tf.keras.metrics.Metric):
+
+    def __init__(self, name='positive_f1', **kwargs):
+        super(PositiveF1Score, self).__init__(name=name, **kwargs)
+        self.precision = Precision(class_id=1)
+        self.recall = Recall(class_id=1)
+        self.f1 = 0
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        self.precision.update_state(y_true, y_pred, sample_weight=sample_weight)
+        self.recall.update_state(y_true, y_pred, sample_weight=sample_weight)
+        precision = self.precision.result()
+        recall = self.recall.result()
+        self.f1 = 2 * ((precision * recall) / (precision + recall))
+
+    def result(self):
+        return self.f1
+
+    def reset_states(self):
+        self.recall.reset_states()
+        self.precision.reset_states()
+        self.f1 = 0
 
 
 class Classifier:
@@ -118,9 +141,7 @@ class Classifier:
             optimizer='nadam',
             loss='categorical_crossentropy',
             metrics=[
-                Recall(class_id=1),
-                Precision(class_id=1),
-                # F1Score(num_classes=2, average='macro')
+                PositiveF1Score()
             ]
         )
 
