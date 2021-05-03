@@ -11,6 +11,7 @@ from sklearn.utils import class_weight
 from tensorflow.keras import Model, Sequential
 from tensorflow.keras.callbacks import *
 from tensorflow.keras.layers import *
+from tensorflow.keras.metrics import Recall, Precision
 from tensorflow_addons.metrics import F1Score
 from transformers import TFAutoModel, AutoTokenizer
 
@@ -60,31 +61,31 @@ class Classifier:
             units=128,
             return_sequences=True,
         )))
-        # classifier.add(Dropout(dropout))
+        classifier.add(Dropout(dropout))
 
         classifier.add(Bidirectional(LSTM(
             units=128,
             return_sequences=False,
         )))
-        # classifier.add(Dropout(dropout))
+        classifier.add(Dropout(dropout))
 
         classifier.add(Dense(
             units=64,
             activation='gelu'
         ))
-        # classifier.add(Dropout(dropout))
+        classifier.add(Dropout(dropout))
 
         classifier.add(Dense(
             units=64,
             activation='gelu'
         ))
-        # classifier.add(Dropout(dropout))
+        classifier.add(Dropout(dropout))
 
         classifier.add(Dense(
             units=32,
             activation='gelu'
         ))
-        # classifier.add(Dropout(dropout))
+        classifier.add(Dropout(dropout))
 
         classifier.add(Dense(
             units=2,
@@ -117,7 +118,9 @@ class Classifier:
             optimizer='nadam',
             loss='categorical_crossentropy',
             metrics=[
-                F1Score(num_classes=2, average='macro')
+                Recall(class_id=1),
+                Precision(class_id=1),
+                # F1Score(num_classes=2, average='macro')
             ]
         )
 

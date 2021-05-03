@@ -97,7 +97,7 @@ def main():
 
     # initialize active learning
     num_samples = len(x)  # total number of samples in dataset
-    sample_size = 1000  # number of samples to retrieve from unlabeled set
+    sample_size = 100  # number of samples to retrieve from unlabeled set
     del x, y
 
     # record fully trained results for plotting
@@ -109,9 +109,9 @@ def main():
 
     # Active Learning (Random Selection)
     num_selection_rounds = (num_samples // sample_size) + int(bool((num_samples % sample_size)))
-    for _ in range(num_selection_rounds):
+    for round_num in range(num_selection_rounds):
         # remake model
-        my_model = Classifier(model_name=f'{time_stamp}_random_selection_{num_selection_rounds}')
+        my_model = Classifier(model_name=f'{time_stamp}_random_selection_{round_num}')
 
         # train
         my_model.fit(labeled_x, labeled_y)
@@ -123,8 +123,8 @@ def main():
 
         # Gather new samples
         idxs = random_sampler(unlabeled_x, sample_size)
-        np.concatenate(labeled_x, unlabeled_x[idxs])
-        np.concatenate(labeled_y, unlabeled_y[idxs])
+        np.concatenate(labeled_x, unlabeled_x.take(idxs))
+        np.concatenate(labeled_y, unlabeled_y.take(idxs))
         np.delete(unlabeled_x, idxs, axis=0)
         np.delete(unlabeled_y, idxs, axis=0)
 
