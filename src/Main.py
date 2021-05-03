@@ -86,7 +86,7 @@ def main():
     """
 
     dataset = Dataset()
-    my_model = Classifier(model_name=time_stamp + '_full_dataset')
+    my_model = Classifier(model_name=f'{time_stamp}_full_dataset')
 
     # train and test a full classifier on the training data
     x, y = dataset.get_train_data()
@@ -111,7 +111,7 @@ def main():
     num_selection_rounds = (num_samples // sample_size) + int(bool((num_samples % sample_size)))
     for _ in range(num_selection_rounds):
         # remake model
-        my_model = Classifier(model_name=time_stamp + '_random_selection_' + num_selection_rounds)
+        my_model = Classifier(model_name=f'{time_stamp}_random_selection_{num_selection_rounds}')
 
         # train
         my_model.fit(labeled_x, labeled_y)
