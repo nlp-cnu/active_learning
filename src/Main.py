@@ -25,7 +25,7 @@ def plot(score_dir=os.path.join('..', 'scores', time_stamp)):
     """
     import matplotlib.pyplot as plt
 
-    score_files = [score_dir + file for file in os.listdir(score_dir)]
+    score_files = [os.path.join(score_dir, file) for file in os.listdir(score_dir)]
 
     plt.tight_layout()
     prop_cycle = plt.rcParams['axes.prop_cycle']
@@ -52,7 +52,7 @@ def plot(score_dir=os.path.join('..', 'scores', time_stamp)):
                            label='Full Dataset', color=color)
                 continue
 
-            plt_name = ' '.join(string.capitalize() for string in file.split('/')[-1][:-4].split('_'))
+            plt_name = ' '.join(string.capitalize() for string in file.split(os.path.sep)[-1][:-4].split('_'))
             f1_scores = []
             sample_idx = []
             for line in f:
@@ -63,7 +63,7 @@ def plot(score_dir=os.path.join('..', 'scores', time_stamp)):
 
     ax1.legend(loc='lower right')
     plt.show()
-    ax1.figure.savefig(f'../scores/{time_stamp}/plot.png')
+    ax1.figure.savefig(os.path.join('..', 'scores', time_stamp, 'plot.png'))
 
 
 def random_sampler(x, sample_size):
@@ -97,12 +97,12 @@ def main():
 
     # initialize active learning
     num_samples = len(x)  # total number of samples in dataset
-    sample_size = 100  # number of samples to retrieve from unlabeled set
+    sample_size = 1000  # number of samples to retrieve from unlabeled set
     del x, y
 
     # record fully trained results for plotting
     with open(FULLY_TRAINED_F1, 'w') as f:
-        f.write(f'{f1}\t{num_samples}')
+        f.write(f'{f1},{num_samples}')
 
     # get AL split
     (labeled_x, labeled_y), (unlabeled_x, unlabeled_y) = dataset.get_active_set()
@@ -118,15 +118,19 @@ def main():
 
         # test & record for plotting
         f1 = my_model.test(x_test, y_test)
-        with open(RANDOM_F1, 'w') as f:
+        with open(RANDOM_F1, 'a') as f:
             f.write(f'{f1},{len(labeled_x)}\n')
 
         # Gather new samples
         idxs = random_sampler(unlabeled_x, sample_size)
-        np.concatenate(labeled_x, unlabeled_x.take(idxs))
-        np.concatenate(labeled_y, unlabeled_y.take(idxs))
-        np.delete(unlabeled_x, idxs, axis=0)
-        np.delete(unlabeled_y, idxs, axis=0)
+
+        if not idxs:
+            break
+
+        labeled_x = np.concatenate((labeled_x, unlabeled_x[idxs]))
+        labeled_y = np.concatenate((labeled_y, unlabeled_y[idxs]))
+        unlabeled_x = np.delete(unlabeled_x, idxs, axis=0)
+        unlabeled_y = np.delete(unlabeled_y, idxs, axis=0)
 
     plot()
 

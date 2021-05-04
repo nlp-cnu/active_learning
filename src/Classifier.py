@@ -153,6 +153,8 @@ class Classifier:
         :param x: batch of raw strings
         :return: tokenized ids, attention mask
         """
+        if not isinstance(x, list):
+            x = list(x)
         bio_tokenized = self.bio_tokenizer(x, padding=True, truncation=True, max_length=512, return_tensors='tf')
         return bio_tokenized['input_ids'], bio_tokenized['attention_mask']
 
@@ -184,8 +186,8 @@ class Classifier:
 
         self.model.fit(
             self.format_input(x), y,
-            epochs=20,
-            batch_size=150,
+            epochs=15,
+            batch_size=100,
             # validation_split=0.1,
             class_weight=class_weights,
             callbacks=[

@@ -26,7 +26,7 @@ class Dataset:
         # p.set_options(p.OPT.EMOJI, p.OPT.SMILEY, p.OPT.RESERVED, p.OPT.NUMBER)
         # data = data.apply(p.tokenize)
 
-        data = data.tolist()
+        data = data.to_numpy()
 
         # One Hot encode labels
         labels = self.label_encoder.fit_transform(df['Label'].values.reshape(-1, 1))
