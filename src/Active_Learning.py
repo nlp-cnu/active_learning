@@ -1,5 +1,4 @@
 import random
-import numpy as np
 
 
 def random_active_learning(unlabeled_dataset, annotation_budget):

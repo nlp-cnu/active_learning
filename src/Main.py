@@ -1,6 +1,5 @@
 import os
 import shutil
-from datetime import datetime
 
 # Remove excessive tf log messages
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -76,102 +75,102 @@ def validation_testing():
         f.write(f'{f1_score}\n\n')
         f.flush()
 
-        # f.write('BERT models:\n')
-        # bert_models = {
-        #     # 'Base_BERT': 'bert-base-uncased',
-        #     'Twitter_RoBERTa': 'cardiffnlp/twitter-roberta-base',
-        #     'BioRedditBERT': 'cambridgeltl/BioRedditBERT-uncased',
-        # }
-        # for bert, location in bert_models.items():
-        #     model = ADE_Detector(model_name=f'{bert}', bert_model=location)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{bert:15} - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # f.write('Dropout rates:\n')
-        # dropout_rates = [0.0] + [num / 10 for num in range(5, 9)]  # 0.0 + 0.5 to 0.8
-        # for dropout in dropout_rates:
-        #     model = ADE_Detector(model_name=f'Dropout_{dropout}', dropout_rate=dropout)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{dropout} - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # f.write('Optimizers:\n')
-        # optimizers = {
-        #     'Adam': Adam(),
-        #     'Nadam': Nadam(),
-        #     'Adamax': Adamax(),
-        #     'Adagrad': Adagrad(),
-        #     'SGD': SGD()
-        # }
-        # for name, optimizer in optimizers.items():
-        #     model = ADE_Detector(model_name=f'Optimizer_{name}', optimizer=optimizer)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{name:7} - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # f.write('Learning Rates:\n')
-        # rates = [1e0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
-        # for lr in rates:
-        #     optimizer = Adam(learning_rate=lr)
-        #     model = ADE_Detector(model_name=f'Learning_Rate_{lr}', optimizer=optimizer)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{lr:7} - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # f.write('Epsilons:\n')
-        # for epsilon in rates:
-        #     optimizer = Adam(epsilon=epsilon)
-        #     model = ADE_Detector(model_name=f'Epsilon_{epsilon}', optimizer=optimizer)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{epsilon:7} - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # f.write('LSTM:\n')
-        # num_lstm = list(range(1, 3))
-        # for num in num_lstm:
-        #     model = ADE_Detector(model_name=f'LSTM_Layers_{num}', num_lstm=num)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{num} LSTM layers - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # lstm_sizes = [2 ** num for num in range(7, 10)]
-        # for size in lstm_sizes:
-        #     model = ADE_Detector(model_name=f'LSTM_Units_{num}', lstm_size=size)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{size} LSTM units - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # f.write('Dense:\n')
-        # num_dense = list(range(1, 3))
-        # for num in num_dense:
-        #     model = ADE_Detector(model_name=f'Dense_Layers_{num}', num_dense=num)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{num} Dense layers - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # dense_sizes = [2 ** num for num in range(5, 10)]
-        # for size in dense_sizes:
-        #     model = ADE_Detector(model_name=f'Dense_Units_{num}', dense_size=size)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{size} Dense units - {f1_score}\n')
-        #     f.flush()
-        # f.write('\n')
-        #
-        # dense_activations = ['relu', 'elu', 'gelu', 'tanh']
-        # for activation in dense_activations:
-        #     model = ADE_Detector(model_name=f'Dense_Activation_{activation}', dense_activation=activation)
-        #     f1_score = cross_validation(model)
-        #     f.write(f'\t{activation} Dense activation - {f1_score}\n')
-        #     f.flush()
+        f.write('BERT models:\n')
+        bert_models = {
+            # 'Base_BERT': BASEBERT,
+            'Twitter_RoBERTa': ROBERTA_TWITTER,
+            'BioRedditBERT': BIOREDDITBERT,
+        }
+        for bert, location in bert_models.items():
+            model = ADE_Detector(model_name=f'{bert}', bert_model=location)
+            f1_score = cross_validation(model)
+            f.write(f'\t{bert:15} - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        f.write('Dropout rates:\n')
+        dropout_rates = [0.0] + [num / 10 for num in range(5, 9)]  # 0.0 + 0.5 to 0.8
+        for dropout in dropout_rates:
+            model = ADE_Detector(model_name=f'Dropout_{dropout}', dropout_rate=dropout)
+            f1_score = cross_validation(model)
+            f.write(f'\t{dropout} - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        f.write('Optimizers:\n')
+        optimizers = {
+            'Adam': Adam(),
+            'Nadam': Nadam(),
+            'Adamax': Adamax(),
+            'Adagrad': Adagrad(),
+            'SGD': SGD()
+        }
+        for name, optimizer in optimizers.items():
+            model = ADE_Detector(model_name=f'Optimizer_{name}', optimizer=optimizer)
+            f1_score = cross_validation(model)
+            f.write(f'\t{name:7} - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        f.write('Learning Rates:\n')
+        rates = [1e0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
+        for lr in rates:
+            optimizer = Adam(learning_rate=lr)
+            model = ADE_Detector(model_name=f'Learning_Rate_{lr}', optimizer=optimizer)
+            f1_score = cross_validation(model)
+            f.write(f'\t{lr:7} - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        f.write('Epsilons:\n')
+        for epsilon in rates:
+            optimizer = Adam(epsilon=epsilon)
+            model = ADE_Detector(model_name=f'Epsilon_{epsilon}', optimizer=optimizer)
+            f1_score = cross_validation(model)
+            f.write(f'\t{epsilon:7} - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        f.write('LSTM:\n')
+        num_lstm = list(range(1, 3))
+        for num in num_lstm:
+            model = ADE_Detector(model_name=f'LSTM_Layers_{num}', num_lstm=num)
+            f1_score = cross_validation(model)
+            f.write(f'\t{num} LSTM layers - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        lstm_sizes = [2 ** num for num in range(7, 10)]
+        for size in lstm_sizes:
+            model = ADE_Detector(model_name=f'LSTM_Units_{num}', lstm_size=size)
+            f1_score = cross_validation(model)
+            f.write(f'\t{size} LSTM units - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        f.write('Dense:\n')
+        num_dense = list(range(1, 3))
+        for num in num_dense:
+            model = ADE_Detector(model_name=f'Dense_Layers_{num}', num_dense=num)
+            f1_score = cross_validation(model)
+            f.write(f'\t{num} Dense layers - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        dense_sizes = [2 ** num for num in range(5, 10)]
+        for size in dense_sizes:
+            model = ADE_Detector(model_name=f'Dense_Units_{num}', dense_size=size)
+            f1_score = cross_validation(model)
+            f.write(f'\t{size} Dense units - {f1_score}\n')
+            f.flush()
+        f.write('\n')
+
+        dense_activations = ['relu', 'elu', 'gelu', 'tanh']
+        for activation in dense_activations:
+            model = ADE_Detector(model_name=f'Dense_Activation_{activation}', dense_activation=activation)
+            f1_score = cross_validation(model)
+            f.write(f'\t{activation} Dense activation - {f1_score}\n')
+            f.flush()
 
 
 if __name__ == '__main__':

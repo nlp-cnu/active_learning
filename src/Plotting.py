@@ -1,9 +1,6 @@
-from packaging import version
-
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
-from scipy import stats
 import tensorboard as tb
 
 
@@ -65,7 +62,6 @@ def plot_from_tensorboard():
     sns.lineplot(data=dfw_validation, x="step", y="epoch_loss").set_title("Loss")
 
     plt.show()
-
 
 
 if __name__ == '__main__':

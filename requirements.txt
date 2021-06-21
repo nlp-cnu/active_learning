@@ -1,0 +1,10 @@
+matplotlib
+numpy
+pandas
+scikit-learn
+seaborn
+tensorflow
+tensorboard
+tensorboard_reducer
+transformers
+tweet-preprocessor

@@ -10,7 +10,6 @@ from sklearn.metrics import classification_report, f1_score
 from tensorflow.keras import Model, Sequential
 from tensorflow.keras.callbacks import *
 from tensorflow.keras.layers import *
-from tensorflow_addons.metrics import F1Score
 from transformers import TFAutoModel, AutoTokenizer
 
 # Fix TF for my computer (enable memory growth)
