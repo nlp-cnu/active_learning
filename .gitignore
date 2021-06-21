@@ -1,6 +1,5 @@
-/data/tweet_data.txt
+/data/
 /logs/
 /models/
 /scores/
 /.env
-
