@@ -9,7 +9,7 @@ from tensorboard_reducer import load_tb_events, reduce_events, write_tb_events
 from tensorflow.keras.optimizers import *
 
 from ADE_Detector import *
-from Active_Learning import *
+# from Active_Learning import *
 from Dataset import Dataset
 
 # Delete Logs folder automatically for new runs
@@ -43,7 +43,7 @@ def cross_validation(model):
         val_x, val_y = [x[idx] for idx in val_idxs], y[val_idxs]
 
         model.model_name = f'{model_name}_fold_{idx + 1}'
-        history = model.fit(train_x, train_y, (val_x, val_y))
+        model.fit(train_x, train_y, (val_x, val_y))
         f1 = model.test(val_x, val_y)
         scores.append(f1)
 
@@ -61,7 +61,7 @@ def cross_validation(model):
 
 def validation_testing():
     scores_file = os.path.join('..', 'scores.txt')
-    with open(scores_file, 'a+') as f:
+    with open(scores_file, 'w+') as f:
 
         f.write('Base model f1 - ')
         model = ADE_Detector(model_name='Base_BERT')
@@ -77,7 +77,6 @@ def validation_testing():
 
         f.write('BERT models:\n')
         bert_models = {
-            # 'Base_BERT': BASEBERT,
             'Twitter_RoBERTa': ROBERTA_TWITTER,
             'BioRedditBERT': BIOREDDITBERT,
         }

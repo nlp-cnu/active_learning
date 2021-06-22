@@ -55,4 +55,5 @@ class Dataset:
 
 if __name__ == '__main__':
     dataset = Dataset()
+    print(len(dataset.get_train_data()[0]))
     print(dataset.get_train_class_weights())

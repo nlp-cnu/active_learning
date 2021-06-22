@@ -19,7 +19,7 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 # Hyper parameters
 DROPOUT = 0.5
 EPOCHS = 100
-BATCH_SIZE = 1000
+BATCH_SIZE = 500
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
 BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
@@ -45,7 +45,7 @@ class PositiveClassF1(tf.keras.metrics.Metric):
 
         return 2 * ((p * r) / (p + r))
 
-    def reset_states(self):
+    def reset_state(self):
         self.recall.reset_states()
         self.precision.reset_states()
 
@@ -170,7 +170,7 @@ class ADE_Detector:
         """
         return max(learning_rate * np.exp(0.001 * -epoch), 0.00001)
 
-    def fit(self, x, y, val_set, epochs=EPOCHS, lr_scheduler=False):
+    def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False):
 
         callbacks = [
             TensorBoard(os.path.join('..', 'logs', self.model_name)),
@@ -185,10 +185,15 @@ class ADE_Detector:
         if lr_scheduler:
             callbacks.append(LearningRateScheduler(self.__scheduler))
 
+        train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
+
+        if val is not None:
+            val = self.__DataGenerator(val[0], val[1], BATCH_SIZE, bert_model=self.bert_model)
+
         self.model.fit(
-            self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model),
+            train,
             epochs=epochs,
-            validation_data=self.__DataGenerator(val_set[0], val_set[1], BATCH_SIZE, bert_model=self.bert_model),
+            validation_data=val,
             class_weight=self.class_weights,
             callbacks=callbacks,
             verbose=2

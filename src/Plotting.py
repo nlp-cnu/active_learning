@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -50,16 +51,37 @@ def plot_from_tensorboard():
         else:
             data.loc[(data['run'] == run) & (data['step'] == step), [tag]] = value
 
-    print(data)
+    avg_data = pd.DataFrame(columns=['step', 'avg_loss', 'avg_F1'])
+    for idx in range(max(data['step'])):
+        runs = data.loc[data['step'] == idx]
 
-    dfw_validation = data
+        if len(runs) < 5:
+            previous = data.loc[data['step'] == idx - 1]
+            print(list(previous['run']))
 
-    plt.figure(figsize=(16, 6))
+            for run in list(runs['run']):
+                if run not in list(previous['run']):
+                    print(run)
+                    loss = previous.loc[previous['run'] == run, 'epoch_loss']
+                    print(loss)
+
+        loss = np.array(runs['epoch_loss']).mean()
+        f1 = np.array(runs['epoch_positive_class_F1']).mean()
+
+        avg_data = avg_data.append({'step': idx, 'avg_loss': loss, 'avg_F1': f1}, ignore_index=True)
+
+    plt.figure(figsize=(16, 8))
     plt.subplot(1, 2, 1)
-    sns.lineplot(data=dfw_validation, x="step", y="epoch_positive_class_F1").set_title("Positive F1")
+    sns.pointplot(data=data, x="step", y="epoch_positive_class_F1").set_title("Positive F1")
 
     plt.subplot(1, 2, 2)
-    sns.lineplot(data=dfw_validation, x="step", y="epoch_loss").set_title("Loss")
+    sns.pointplot(data=data, x="step", y="epoch_loss").set_title("Loss")
+
+    # plt.subplot(1, 2, 1)
+    # sns.lineplot(data=avg_data, x="step", y="avg_F1").set_title("Positive F1")
+
+    # plt.subplot(1, 2, 2)
+    # sns.lineplot(data=avg_data, x="step", y="avg_loss").set_title("Loss")
 
     plt.show()
 
