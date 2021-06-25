@@ -1,5 +1,5 @@
-/data/
-/logs/
-/models/
-/scores/
+/data/*.tsv
 /.env
+/scores.txt
+/logs/
+/venv/
