@@ -19,7 +19,6 @@ except FileNotFoundError:
     pass
 
 TIME_STAMP = datetime.now().strftime('%m-%d_%H-%M-%S')
-# SEED = 2005
 
 db = Dataset(seed=SEED)
 
@@ -61,116 +60,118 @@ def cross_validation(model):
 
 def validation_testing():
     scores_file = os.path.join('..', 'scores.txt')
-    with open(scores_file, 'w+') as f:
-
-        f.write('Base model f1 - ')
-        model = ADE_Detector(model_name='Base_BERT')
-        f1_score = cross_validation(model)
-        f.write(f'{f1_score}\n\n')
-        f.flush()
-
-        f.write('Base model f1 class weights - ')
-        model = ADE_Detector(model_name='Weights', class_weights=db.get_train_class_weights())
-        f1_score = cross_validation(model)
-        f.write(f'{f1_score}\n\n')
-        f.flush()
-
-        f.write('BERT models:\n')
+    with open(scores_file, 'a+') as f:
         bert_models = {
-            'Twitter_RoBERTa': ROBERTA_TWITTER,
+            "BERT": BASEBERT,
+            'RoBERTaTweet': ROBERTA_TWITTER,
             'BioRedditBERT': BIOREDDITBERT,
         }
-        for bert, location in bert_models.items():
-            model = ADE_Detector(model_name=f'{bert}', bert_model=location)
-            f1_score = cross_validation(model)
-            f.write(f'\t{bert:15} - {f1_score}\n')
-            f.flush()
-        f.write('\n')
+        for bert, bert_model in bert_models.items():
 
-        f.write('Dropout rates:\n')
-        dropout_rates = [0.0] + [num / 10 for num in range(5, 9)]  # 0.0 + 0.5 to 0.8
-        for dropout in dropout_rates:
-            model = ADE_Detector(model_name=f'Dropout_{dropout}', dropout_rate=dropout)
+            f.write(f'{bert} f1 - ')
+            model = ADE_Detector(model_name=f'{bert}_Weights', bert_model=bert_model,)
             f1_score = cross_validation(model)
-            f.write(f'\t{dropout} - {f1_score}\n')
+            f.write(f'{f1_score}\n\n')
             f.flush()
-        f.write('\n')
 
-        f.write('Optimizers:\n')
-        optimizers = {
-            'Adam': Adam(),
-            'Nadam': Nadam(),
-            'Adamax': Adamax(),
-            'Adagrad': Adagrad(),
-            'SGD': SGD()
-        }
-        for name, optimizer in optimizers.items():
-            model = ADE_Detector(model_name=f'Optimizer_{name}', optimizer=optimizer)
+            f.write(f'{bert} f1 class weights - ')
+            model = ADE_Detector(model_name=f'{bert}_Weights', bert_model=bert_model,
+                                 class_weights=db.get_train_class_weights())
             f1_score = cross_validation(model)
-            f.write(f'\t{name:7} - {f1_score}\n')
+            f.write(f'{f1_score}\n\n')
             f.flush()
-        f.write('\n')
 
-        f.write('Learning Rates:\n')
-        rates = [1e0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
-        for lr in rates:
-            optimizer = Adam(learning_rate=lr)
-            model = ADE_Detector(model_name=f'Learning_Rate_{lr}', optimizer=optimizer)
-            f1_score = cross_validation(model)
-            f.write(f'\t{lr:7} - {f1_score}\n')
-            f.flush()
-        f.write('\n')
+            f.write(f'{bert} Dropout rates:\n')
+            dropout_rates = [0.0] + [num / 10 for num in range(5, 9)]  # 0.0 + 0.5 to 0.8
+            for dropout in dropout_rates:
+                model = ADE_Detector(model_name=f'{bert}_Dropout_{dropout}', dropout_rate=dropout, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{dropout} - {f1_score}\n')
+                f.flush()
+            f.write('\n')
 
-        f.write('Epsilons:\n')
-        for epsilon in rates:
-            optimizer = Adam(epsilon=epsilon)
-            model = ADE_Detector(model_name=f'Epsilon_{epsilon}', optimizer=optimizer)
-            f1_score = cross_validation(model)
-            f.write(f'\t{epsilon:7} - {f1_score}\n')
-            f.flush()
-        f.write('\n')
+            f.write(f'{bert} Optimizers:\n')
+            optimizers = {
+                'Adam': Adam(),
+                'AMSgrad': Adam(amsgrad=True),
+                'Nadam': Nadam(),
+                'Adamax': Adamax(),
+                'Adagrad': Adagrad(),
+                'SGD': SGD()
+            }
+            for name, optimizer in optimizers.items():
+                model = ADE_Detector(model_name=f'{bert}_Optimizer_{name}', optimizer=optimizer, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{name:7} - {f1_score}\n')
+                f.flush()
+            f.write('\n')
 
-        f.write('LSTM:\n')
-        num_lstm = list(range(1, 3))
-        for num in num_lstm:
-            model = ADE_Detector(model_name=f'LSTM_Layers_{num}', num_lstm=num)
-            f1_score = cross_validation(model)
-            f.write(f'\t{num} LSTM layers - {f1_score}\n')
-            f.flush()
-        f.write('\n')
+            f.write(f'{bert} Learning Rates:\n')
+            rates = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8]
+            for lr in rates:
+                optimizer = Adam(learning_rate=lr)
+                model = ADE_Detector(model_name=f'{bert}_Learning_Rate_{lr}', optimizer=optimizer, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{lr:7} - {f1_score}\n')
+                f.flush()
+            f.write('\n')
 
-        lstm_sizes = [2 ** num for num in range(7, 10)]
-        for size in lstm_sizes:
-            model = ADE_Detector(model_name=f'LSTM_Units_{num}', lstm_size=size)
-            f1_score = cross_validation(model)
-            f.write(f'\t{size} LSTM units - {f1_score}\n')
-            f.flush()
-        f.write('\n')
+            f.write(f'{bert} Epsilons:\n')
+            rates = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8]
+            for epsilon in rates:
+                optimizer = Adam(epsilon=epsilon)
+                model = ADE_Detector(model_name=f'{bert}_Epsilon_{epsilon}', optimizer=optimizer, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{epsilon:7} - {f1_score}\n')
+                f.flush()
+            f.write('\n')
 
-        f.write('Dense:\n')
-        num_dense = list(range(1, 3))
-        for num in num_dense:
-            model = ADE_Detector(model_name=f'Dense_Layers_{num}', num_dense=num)
-            f1_score = cross_validation(model)
-            f.write(f'\t{num} Dense layers - {f1_score}\n')
-            f.flush()
-        f.write('\n')
+            f.write(f'{bert} LSTM:\n')
+            num_lstm = list(range(1, 4))
+            for num in num_lstm:
+                model = ADE_Detector(model_name=f'{bert}_LSTM_Layers_{num}', num_lstm=num, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{num} LSTM layers - {f1_score}\n')
+                f.flush()
+            f.write('\n')
 
-        dense_sizes = [2 ** num for num in range(5, 10)]
-        for size in dense_sizes:
-            model = ADE_Detector(model_name=f'Dense_Units_{num}', dense_size=size)
-            f1_score = cross_validation(model)
-            f.write(f'\t{size} Dense units - {f1_score}\n')
-            f.flush()
-        f.write('\n')
+            lstm_sizes = [2 ** num for num in range(7, 10)]
+            for size in lstm_sizes:
+                model = ADE_Detector(model_name=f'{bert}_LSTM_Units_{size}', lstm_size=size, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{size} LSTM units - {f1_score}\n')
+                f.flush()
+            f.write('\n')
 
-        dense_activations = ['relu', 'elu', 'gelu', 'tanh']
-        for activation in dense_activations:
-            model = ADE_Detector(model_name=f'Dense_Activation_{activation}', dense_activation=activation)
-            f1_score = cross_validation(model)
-            f.write(f'\t{activation} Dense activation - {f1_score}\n')
-            f.flush()
+            f.write(f'{bert} Dense:\n')
+            num_dense = list(range(1, 6))
+            for num in num_dense:
+                model = ADE_Detector(model_name=f'{bert}_Dense_Layers_{num}', num_dense=num, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{num} Dense layers - {f1_score}\n')
+                f.flush()
+            f.write('\n')
+
+            dense_sizes = [2 ** num for num in range(5, 10)]
+            for size in dense_sizes:
+                model = ADE_Detector(model_name=f'{bert}_Dense_Units_{size}', dense_size=size, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{size} Dense units - {f1_score}\n')
+                f.flush()
+            f.write('\n')
+
+            dense_activations = ['relu', 'elu', 'gelu', 'tanh']
+            for activation in dense_activations:
+                model = ADE_Detector(model_name=f'{bert}_Dense_Activation_{activation}', dense_activation=activation, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{activation} Dense activation - {f1_score}\n')
+                f.flush()
+
+
+def active_learning_experiment():
+    pass
 
 
 if __name__ == '__main__':
     validation_testing()
+    active_learning_experiment()

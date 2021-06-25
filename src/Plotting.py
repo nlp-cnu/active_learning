@@ -35,11 +35,11 @@ def plot_test_graph(baseline_f1, random_al_f1_list, num_samples_list, file_name)
 
 
 def plot_from_tensorboard():
-    experiment_id = "C5coRObqRkGYFX9q0Pyd9g"
+    experiment_id = "mzqnKcymS5WgKTps3EBbXw"
     experiment = tb.data.experimental.ExperimentFromDev(experiment_id)
     df = experiment.get_scalars()
 
-    f = df['run'].str.contains('Base_BERT')
+    f = df['run'].str.contains('Optimizer_Nadam')
     df = df[f]
     f = df['run'].str.endswith('validation')
     df = df[f]
@@ -57,13 +57,10 @@ def plot_from_tensorboard():
 
         if len(runs) < 5:
             previous = data.loc[data['step'] == idx - 1]
-            print(list(previous['run']))
 
             for run in list(runs['run']):
                 if run not in list(previous['run']):
-                    print(run)
                     loss = previous.loc[previous['run'] == run, 'epoch_loss']
-                    print(loss)
 
         loss = np.array(runs['epoch_loss']).mean()
         f1 = np.array(runs['epoch_positive_class_F1']).mean()
@@ -72,10 +69,10 @@ def plot_from_tensorboard():
 
     plt.figure(figsize=(16, 8))
     plt.subplot(1, 2, 1)
-    sns.pointplot(data=data, x="step", y="epoch_positive_class_F1").set_title("Positive F1")
+    sns.lineplot(data=data, x="step", y="epoch_positive_class_F1").set_title("Positive F1")
 
     plt.subplot(1, 2, 2)
-    sns.pointplot(data=data, x="step", y="epoch_loss").set_title("Loss")
+    sns.lineplot(data=data, x="step", y="epoch_loss").set_title("Loss")
 
     # plt.subplot(1, 2, 1)
     # sns.lineplot(data=avg_data, x="step", y="avg_F1").set_title("Positive F1")

@@ -6,6 +6,9 @@ import dotenv
 import tweepy
 from tqdm import tqdm
 
+# dataset can be downloaded from https://data.mendeley.com/datasets/rxwfb3tysd/2
+# download the subtask1.zip file to get the correct files.
+
 # todo: create .env file with your credentials with format
 # consumer_key=XXXX
 # consumer_key_secret=XXXX
@@ -30,7 +33,7 @@ api = tweepy.API(auth)
 
 def create_data_file(input_filepath, output_filepath):
     input_file = open(input_filepath, encoding='utf8')
-    output_file = open(output_filepath, 'ab')
+    output_file = open(output_filepath, 'a', encoding='utf8')
     lines = input_file.readlines()
 
     start_time = time.time()
@@ -38,16 +41,13 @@ def create_data_file(input_filepath, output_filepath):
     for line in iterator:
 
         # todo format for your input data file
-        if '1' in input_filepath:
-            tweet_id, user_id, _, label = line.rstrip().split('\t')
-        else:
-            tweet_id, user_id, label = line.rstrip().split('\t')
+        tweet_id, user_id, label = line.rstrip().split('\t')
 
         try:
             tweet = api.get_status(tweet_id)
             text = tweet.text.replace('\n', ' ')
             # todo format the way you like
-            output_file.write(f'{text}\t{label}\n'.encode("utf-8"))
+            output_file.write(f'{text}\t{label}\n')
 
         except tweepy.RateLimitError:
             # rate limit reached. 900 api requests / 15 minute interval
@@ -75,7 +75,22 @@ def create_data_file(input_filepath, output_filepath):
 
 
 if __name__ == '__main__':
-    output_filepath = 'tweet_data.txt'
-    for i in range(1, 4):
-        input_filepath = f'task3_trainingset{i}_download_form.txt'
-        create_data_file(input_filepath, output_filepath)
+    input_filepath = 'training_set_1_ids.txt'
+    output_filepath = 'train.tsv'
+    create_data_file(input_filepath, output_filepath)
+
+    input_filepath = 'training_set_2_ids.txt'
+    output_filepath = 'validation.tsv'
+    create_data_file(input_filepath, output_filepath)
+
+    input_filepath = 'evaluation_set_ids.txt'
+    output_filepath = 'test.tsv'
+    create_data_file(input_filepath, output_filepath)
+
+    with open('full_dataset.tsv', 'w', encoding='utf8') as f:
+        for line in open('train.tsv', encoding='utf8'):
+            f.write(line)
+        for line in open('validation.tsv', encoding='utf8'):
+            f.write(line)
+        for line in open('test.tsv', encoding='utf8'):
+            f.write(line)

@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 # Remove excessive tf log messages
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
 import tensorflow as tf
@@ -17,9 +17,9 @@ physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # Hyper parameters
-DROPOUT = 0.5
+DROPOUT = 0.0
 EPOCHS = 100
-BATCH_SIZE = 500
+BATCH_SIZE = 1000
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
 BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
@@ -66,6 +66,11 @@ class ADE_Detector:
             batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
             tokenized = self.tokenizer(batch_x, padding=True, truncation=True, max_length=512, return_tensors='tf')
 
+            # print the tokenized tokens
+            # for i, t in enumerate(tokenized['input_ids']):
+            #     print("string = ", batch_x[i])
+            #     print("tokens = ", self.tokenizer.convert_ids_to_tokens(t))
+
             return (tokenized['input_ids'], tokenized['attention_mask']), batch_y
 
         def on_epoch_end(self):
@@ -81,7 +86,7 @@ class ADE_Detector:
 
     def __init__(self, model_name=None, bert_model=BASEBERT, dropout_rate=DROPOUT,
                  num_lstm=1, lstm_size=512,
-                 num_dense=3, dense_size=128, dense_activation='gelu',
+                 num_dense=1, dense_size=256, dense_activation='gelu',
                  optimizer='adam', class_weights=None
                  ):
         """
@@ -109,10 +114,10 @@ class ADE_Detector:
 
         classifier = Sequential()
 
-        for _ in range(self.num_lstm):
+        for layer in range(self.num_lstm):
             classifier.add(Bidirectional(LSTM(
                 units=self.lstm_size,
-                return_sequences=False,
+                return_sequences=layer != (self.num_lstm - 1),
                 kernel_initializer=tf.keras.initializers.RandomNormal(seed=SEED)
             )))
             classifier.add(Dropout(self.dropout_rate))
@@ -172,14 +177,16 @@ class ADE_Detector:
 
     def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False):
 
+        stopping = EarlyStopping(
+                monitor='val_loss',
+                min_delta=0.01,
+                patience=5
+        ) if val is not None else None
+
         callbacks = [
             TensorBoard(os.path.join('..', 'logs', self.model_name)),
             # ModelCheckpoint(os.path.join('..', 'models', 'checkpoints', 'temp'), save_best_only=True),
-            EarlyStopping(
-                monitor='val_loss',
-                min_delta=0.001,
-                patience=5
-            )
+            stopping
         ]
 
         if lr_scheduler:
@@ -196,7 +203,7 @@ class ADE_Detector:
             validation_data=val,
             class_weight=self.class_weights,
             callbacks=callbacks,
-            verbose=2
+            # verbose=2
         )
 
         # self.save()
@@ -207,7 +214,13 @@ class ADE_Detector:
         :param x: data
         :return: predictions
         """
-        return self.model.predict(x)
+
+        if not isinstance(x, tf.keras.utils.Sequence):
+            tokenizer = self.__DataGenerator(x, None, None).tokenizer
+            tokenized = tokenizer(x, padding=True, truncation=True, max_length=512, return_tensors='tf')
+            x = (tokenized['input_ids'], tokenized['attention_mask'])
+
+        return self.model.predict(x, batch_size=500)
 
     def test(self, x, y_true):
         """
@@ -250,3 +263,4 @@ class ADE_Detector:
 
 if __name__ == '__main__':
     a = ADE_Detector()
+    a.predict([['I am a turtle']])
