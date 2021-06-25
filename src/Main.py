@@ -69,13 +69,13 @@ def validation_testing():
         for bert, bert_model in bert_models.items():
 
             f.write(f'{bert} f1 - ')
-            model = ADE_Detector(model_name=f'{bert}_Weights', bert_model=bert_model,)
+            model = ADE_Detector(model_name=f'{bert}', bert_model=bert_model,)
             f1_score = cross_validation(model)
             f.write(f'{f1_score}\n\n')
             f.flush()
 
             f.write(f'{bert} f1 class weights - ')
-            model = ADE_Detector(model_name=f'{bert}_Weights', bert_model=bert_model,
+            model = ADE_Detector(model_name=f'{bert}_Class_Weights', bert_model=bert_model,
                                  class_weights=db.get_train_class_weights())
             f1_score = cross_validation(model)
             f.write(f'{f1_score}\n\n')
