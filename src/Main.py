@@ -32,9 +32,6 @@ def cross_validation(model):
 
     x, y = db.get_train_data()
 
-    # x = x[:1000]
-    # y = y[:1000]
-
     scores = []
 
     model_name = model.model_name
@@ -129,46 +126,46 @@ def validation_testing():
                 f.flush()
             f.write('\n')
 
-            # f.write(f'{bert} LSTM:\n')
-            # num_lstm = list(range(1, 4))
-            # for num in num_lstm:
-            #     model = ADE_Detector(model_name=f'{bert}_LSTM_Layers_{num}', num_lstm=num, bert_model=bert_model)
-            #     f1_score = cross_validation(model)
-            #     f.write(f'\t{num} LSTM layers - {f1_score}\n')
-            #     f.flush()
-            # f.write('\n')
-            #
-            # lstm_sizes = [2 ** num for num in range(7, 10)]
-            # for size in lstm_sizes:
-            #     model = ADE_Detector(model_name=f'{bert}_LSTM_Units_{size}', lstm_size=size, bert_model=bert_model)
-            #     f1_score = cross_validation(model)
-            #     f.write(f'\t{size} LSTM units - {f1_score}\n')
-            #     f.flush()
-            # f.write('\n')
-            #
-            # f.write(f'{bert} Dense:\n')
-            # num_dense = list(range(1, 6))
-            # for num in num_dense:
-            #     model = ADE_Detector(model_name=f'{bert}_Dense_Layers_{num}', num_dense=num, bert_model=bert_model)
-            #     f1_score = cross_validation(model)
-            #     f.write(f'\t{num} Dense layers - {f1_score}\n')
-            #     f.flush()
-            # f.write('\n')
-            #
-            # dense_sizes = [2 ** num for num in range(5, 10)]
-            # for size in dense_sizes:
-            #     model = ADE_Detector(model_name=f'{bert}_Dense_Units_{size}', dense_size=size, bert_model=bert_model)
-            #     f1_score = cross_validation(model)
-            #     f.write(f'\t{size} Dense units - {f1_score}\n')
-            #     f.flush()
-            # f.write('\n')
-            #
-            # dense_activations = ['relu', 'elu', 'gelu', 'tanh']
-            # for activation in dense_activations:
-            #     model = ADE_Detector(model_name=f'{bert}_Dense_Activation_{activation}', dense_activation=activation, bert_model=bert_model)
-            #     f1_score = cross_validation(model)
-            #     f.write(f'\t{activation} Dense activation - {f1_score}\n')
-            #     f.flush()
+            f.write(f'{bert} LSTM:\n')
+            num_lstm = list(range(1, 4))
+            for num in num_lstm:
+                model = ADE_Detector(model_name=f'{bert}_LSTM_Layers_{num}', num_lstm=num, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{num} LSTM layers - {f1_score}\n')
+                f.flush()
+            f.write('\n')
+
+            lstm_sizes = [2 ** num for num in range(7, 10)]
+            for size in lstm_sizes:
+                model = ADE_Detector(model_name=f'{bert}_LSTM_Units_{size}', lstm_size=size, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{size} LSTM units - {f1_score}\n')
+                f.flush()
+            f.write('\n')
+
+            f.write(f'{bert} Dense:\n')
+            num_dense = list(range(1, 6))
+            for num in num_dense:
+                model = ADE_Detector(model_name=f'{bert}_Dense_Layers_{num}', num_dense=num, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{num} Dense layers - {f1_score}\n')
+                f.flush()
+            f.write('\n')
+
+            dense_sizes = [2 ** num for num in range(5, 10)]
+            for size in dense_sizes:
+                model = ADE_Detector(model_name=f'{bert}_Dense_Units_{size}', dense_size=size, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{size} Dense units - {f1_score}\n')
+                f.flush()
+            f.write('\n')
+
+            dense_activations = ['relu', 'elu', 'gelu', 'tanh']
+            for activation in dense_activations:
+                model = ADE_Detector(model_name=f'{bert}_Dense_Activation_{activation}', dense_activation=activation, bert_model=bert_model)
+                f1_score = cross_validation(model)
+                f.write(f'\t{activation} Dense activation - {f1_score}\n')
+                f.flush()
 
 
 def tune_dal():
