@@ -31,14 +31,14 @@ def random_active_learning(labeled, unlabeled, annotation_budget):
     return (lx, ly), (ux, uy)
 
 
-def discriminative_active_learning(labeled, unlabeled, annotation_budget):
+def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=None):
     """
     Discriminative Active Learning
     :param unlabeled: the unlabeled dataset
     :param annotation_budget: the number of samples to pull from the dataset
-    :return: the indexes of the samples to retrieve 
+    :return: the new labeled and unlabeled datasets
     """
-    classifier = ADE_Detector()
+    classifier = ADE_Detector() if model is None else model
     mini_queries = 10  # n
 
     lx, ly = labeled
@@ -71,7 +71,7 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget):
     return (lx, ly), (ux, uy)
 
 
-if __name__ == '__main__':
+def main():
     from Dataset import Dataset
     db = Dataset()
 
@@ -93,3 +93,7 @@ if __name__ == '__main__':
                 num_neg += 1
 
         print(f"{num_neg} negative samples, {num_pos} positive samples")
+
+
+if __name__ == '__main__':
+    main()

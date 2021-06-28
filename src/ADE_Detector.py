@@ -19,7 +19,7 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 # Hyper parameters
 DROPOUT = 0.0
 EPOCHS = 100
-BATCH_SIZE = 1000
+BATCH_SIZE = 500
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
 BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
@@ -178,9 +178,10 @@ class ADE_Detector:
     def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False):
 
         stopping = EarlyStopping(
-                monitor='val_loss',
-                min_delta=0.01,
-                patience=5
+                monitor='val_positive_class_F1',
+                min_delta=0.001,
+                patience=5,
+                restore_best_weights=True
         ) if val is not None else None
 
         callbacks = [
@@ -220,7 +221,7 @@ class ADE_Detector:
             tokenized = tokenizer(x, padding=True, truncation=True, max_length=512, return_tensors='tf')
             x = (tokenized['input_ids'], tokenized['attention_mask'])
 
-        return self.model.predict(x, batch_size=500)
+        return self.model.predict(x, batch_size=BATCH_SIZE)
 
     def test(self, x, y_true):
         """
@@ -258,9 +259,13 @@ class ADE_Detector:
         self.model.load_weights(filepath)
 
     def reset_model(self):
+        """
+        Reset the model's learned weights
+        :return:
+        """
         self.model = self.__make_model()
 
 
 if __name__ == '__main__':
     a = ADE_Detector()
-    a.predict([['I am a turtle']])
+
