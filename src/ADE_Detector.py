@@ -177,26 +177,27 @@ class ADE_Detector:
 
     def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False):
 
-        stopping = EarlyStopping(
-                monitor='val_positive_class_F1',
-                min_delta=0.001,
-                patience=5,
-                restore_best_weights=True
-        ) if val is not None else None
+        train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
 
         callbacks = [
             TensorBoard(os.path.join('..', 'logs', self.model_name)),
             # ModelCheckpoint(os.path.join('..', 'models', 'checkpoints', 'temp'), save_best_only=True),
-            stopping
         ]
 
         if lr_scheduler:
             callbacks.append(LearningRateScheduler(self.__scheduler))
 
-        train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
-
         if val is not None:
             val = self.__DataGenerator(val[0], val[1], BATCH_SIZE, bert_model=self.bert_model)
+            callbacks.append(
+                EarlyStopping(
+                    monitor='val_positive_class_F1',
+                    mode='max',  # want value to increase
+                    min_delta=0.001,
+                    patience=5,
+                    restore_best_weights=True
+                )
+            )
 
         self.model.fit(
             train,
@@ -204,7 +205,7 @@ class ADE_Detector:
             validation_data=val,
             class_weight=self.class_weights,
             callbacks=callbacks,
-            # verbose=2
+            verbose=2
         )
 
         # self.save()
@@ -268,4 +269,3 @@ class ADE_Detector:
 
 if __name__ == '__main__':
     a = ADE_Detector()
-

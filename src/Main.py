@@ -13,10 +13,10 @@ from Active_Learning import *
 from Dataset import Dataset
 
 # Delete Logs folder automatically for new runs
-# try:
-#     shutil.rmtree(os.path.join('..', 'logs'))
-# except FileNotFoundError:
-#     pass
+try:
+    shutil.rmtree(os.path.join('..', 'logs'))
+except FileNotFoundError:
+    pass
 
 TIME_STAMP = datetime.now().strftime('%m-%d_%H-%M-%S')
 
@@ -32,8 +32,8 @@ def cross_validation(model):
 
     x, y = db.get_train_data()
 
-    x = x[:100]
-    y = y[:100]
+    # x = x[:1000]
+    # y = y[:1000]
 
     scores = []
 
@@ -58,15 +58,15 @@ def cross_validation(model):
         reduced_events = reduce_events(events_dict, ['mean'])
         write_tb_events(reduced_events, output_dir)
 
-    return np.mean(scores)  # avg training,
+    return np.mean(scores)  # avg training
 
 
 def validation_testing():
     scores_file = os.path.join('..', 'scores.txt')
-    with open(scores_file, 'a+') as f:
+    with open(scores_file, 'w+') as f:
         bert_models = {
-            # "BERT": BASEBERT,
-            # 'RoBERTaTweet': ROBERTA_TWITTER,
+            'BERT': BASEBERT,
+            'RoBERTaTweet': ROBERTA_TWITTER,
             'BioRedditBERT': BIOREDDITBERT,
         }
         for bert, bert_model in bert_models.items():
