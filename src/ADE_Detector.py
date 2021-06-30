@@ -17,9 +17,9 @@ physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # Hyper parameters
-DROPOUT = 0.0
+DROPOUT = 0.7
 EPOCHS = 100
-BATCH_SIZE = 500
+BATCH_SIZE = 250
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
 BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
@@ -84,9 +84,9 @@ class ADE_Detector:
                 self.x = [self.x[idx] for idx in idxs]
                 self.y = self.y[idxs]
 
-    def __init__(self, model_name=None, bert_model=BASEBERT, dropout_rate=DROPOUT,
-                 num_lstm=1, lstm_size=512,
-                 num_dense=1, dense_size=256, dense_activation='gelu',
+    def __init__(self, model_name=None, bert_model=ROBERTA_TWITTER, dropout_rate=DROPOUT,
+                 num_lstm=1, lstm_size=128,
+                 num_dense=1, dense_size=64, dense_activation='tanh',
                  optimizer='adam', class_weights=None
                  ):
         """

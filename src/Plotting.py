@@ -5,6 +5,10 @@ import seaborn as sns
 import tensorboard as tb
 
 
+def al_plot(base_f1, random_runs, dal_runs):
+    pass
+
+
 def plot_test_graph(baseline_f1, random_al_f1_list, num_samples_list, file_name):
     """
     Plots a graph of baseline performance to a random AL model
@@ -39,40 +43,46 @@ def plot_from_tensorboard():
     experiment = tb.data.experimental.ExperimentFromDev(experiment_id)
     df = experiment.get_scalars()
 
-    f = df['run'].str.contains('Optimizer_Nadam')
+    f = df['run'].str.contains('BERT_Optimizer_Adam')
     df = df[f]
     f = df['run'].str.endswith('validation')
     df = df[f]
 
-    data = pd.DataFrame(columns=['run', 'step', 'epoch_loss', 'epoch_positive_class_F1'])
-    for idx, (run, tag, step, value) in df.iterrows():
-        if run not in list(data['run']) or step not in list(data.loc[data['run'] == run]['step']):
-            data = data.append({'run': run, 'step': step, tag: value}, ignore_index=True)
-        else:
-            data.loc[(data['run'] == run) & (data['step'] == step), [tag]] = value
+    print(df)
 
-    avg_data = pd.DataFrame(columns=['step', 'avg_loss', 'avg_F1'])
-    for idx in range(max(data['step'])):
-        runs = data.loc[data['step'] == idx]
+    max_epoch = max(df['step'])
 
-        if len(runs) < 5:
-            previous = data.loc[data['step'] == idx - 1]
+    print(max_epoch)
 
-            for run in list(runs['run']):
-                if run not in list(previous['run']):
-                    loss = previous.loc[previous['run'] == run, 'epoch_loss']
-
-        loss = np.array(runs['epoch_loss']).mean()
-        f1 = np.array(runs['epoch_positive_class_F1']).mean()
-
-        avg_data = avg_data.append({'step': idx, 'avg_loss': loss, 'avg_F1': f1}, ignore_index=True)
-
-    plt.figure(figsize=(16, 8))
-    plt.subplot(1, 2, 1)
-    sns.lineplot(data=data, x="step", y="epoch_positive_class_F1").set_title("Positive F1")
-
-    plt.subplot(1, 2, 2)
-    sns.lineplot(data=data, x="step", y="epoch_loss").set_title("Loss")
+    # data = pd.DataFrame(columns=['run', 'step', 'epoch_loss', 'epoch_positive_class_F1'])
+    # for idx, (run, tag, step, value) in df.iterrows():
+    #     if run not in list(data['run']) or step not in list(data.loc[data['run'] == run]['step']):
+    #         data = data.append({'run': run, 'step': step, tag: value}, ignore_index=True)
+    #     else:
+    #         data.loc[(data['run'] == run) & (data['step'] == step), [tag]] = value
+    #
+    # avg_data = pd.DataFrame(columns=['step', 'avg_loss', 'avg_F1'])
+    # for idx in range(max(data['step'])):
+    #     runs = data.loc[data['step'] == idx]
+    #
+    #     if len(runs) < 5:
+    #         previous = data.loc[data['step'] == idx - 1]
+    #
+    #         for run in list(runs['run']):
+    #             if run not in list(previous['run']):
+    #                 loss = previous.loc[previous['run'] == run, 'epoch_loss']
+    #
+    #     loss = np.array(runs['epoch_loss']).mean()
+    #     f1 = np.array(runs['epoch_positive_class_F1']).mean()
+    #
+    #     avg_data = avg_data.append({'step': idx, 'avg_loss': loss, 'avg_F1': f1}, ignore_index=True)
+    #
+    # plt.figure(figsize=(16, 8))
+    # plt.subplot(1, 2, 1)
+    # sns.lineplot(data=data, x="step", y="epoch_positive_class_F1").set_title("Positive F1")
+    #
+    # plt.subplot(1, 2, 2)
+    # sns.lineplot(data=data, x="step", y="epoch_loss").set_title("Loss")
 
     # plt.subplot(1, 2, 1)
     # sns.lineplot(data=avg_data, x="step", y="avg_F1").set_title("Positive F1")
@@ -80,7 +90,7 @@ def plot_from_tensorboard():
     # plt.subplot(1, 2, 2)
     # sns.lineplot(data=avg_data, x="step", y="avg_loss").set_title("Loss")
 
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
