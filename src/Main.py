@@ -35,8 +35,6 @@ def cross_validation(model):
 
     x, y = db.get_train_data()
 
-    x, y = x[:1000], y[:1000]
-
     scores = []
 
     model_name = model.model_name
