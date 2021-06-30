@@ -64,7 +64,7 @@ def cross_validation(model):
 def validation_testing():
     scores_file = os.path.join('..', 'combination_scores.txt')
     with open(scores_file, 'w+') as f:
-        num_runs = 0
+
         for lr in [1.0E-2, 1.0E-3, 1.0E-4, 1.0E-5]:
             for epsilon in [1.0E-4, 1.0E-5, 1.0E-6, 1.0E-7]:
                 for num_lstm in range(1, 3):
@@ -87,7 +87,7 @@ def validation_testing():
                     f1 = cross_validation(model)
                     f.write(f'{f1}\n\n')
                     f.flush()
-    print(num_runs)
+
 
 
 def tune_dal():
