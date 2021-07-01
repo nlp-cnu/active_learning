@@ -175,7 +175,7 @@ class ADE_Detector:
         """
         return max(learning_rate * np.exp(0.001 * -epoch), 0.00001)
 
-    def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False):
+    def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False, monitor='val_positive_class_F1'):
 
         train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
 
@@ -191,8 +191,8 @@ class ADE_Detector:
             val = self.__DataGenerator(val[0], val[1], BATCH_SIZE, bert_model=self.bert_model)
             callbacks.append(
                 EarlyStopping(
-                    monitor='val_positive_class_F1',
-                    mode='max',  # want value to increase
+                    monitor=monitor,
+                    mode='max' if monitor == 'val_positive_class_F1' else 'auto',  # want value to increase
                     min_delta=0.001,
                     patience=5,
                     restore_best_weights=True
