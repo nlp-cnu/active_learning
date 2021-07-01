@@ -44,13 +44,13 @@ class Dataset:
         self.class_weights = dict(enumerate(self.class_weights))
 
     def get_train_data(self):
-        return self.train_X, self.train_Y
+        return self.train_X.copy(), self.train_Y.copy()
 
     def get_train_class_weights(self):
         return self.class_weights
 
     def get_test_data(self):
-        return self.test_X, self.test_Y
+        return self.test_X.copy(), self.test_Y.copy()
 
 
 if __name__ == '__main__':

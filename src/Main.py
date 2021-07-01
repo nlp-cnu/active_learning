@@ -13,8 +13,6 @@ from ADE_Detector import *
 from Active_Learning import *
 from Dataset import Dataset
 
-
-
 # Delete Logs folder automatically for new runs
 try:
     shutil.rmtree(os.path.join('..', 'logs'))
@@ -68,7 +66,6 @@ def validation_testing():
         for lr in [1.0E-2, 1.0E-3, 1.0E-4, 1.0E-5]:
             for epsilon in [1.0E-4, 1.0E-5, 1.0E-6, 1.0E-7]:
                 for num_lstm in range(1, 3):
-
                     model_name = f'LR-{lr}_EP-{epsilon}_{num_lstm}-LSTM'
                     f.write(model_name + ': ')
 
@@ -89,8 +86,7 @@ def validation_testing():
                     f.flush()
 
 
-
-def tune_dal():
+def tune_mini_queries():
     lx, ly = [], np.array([])
     ux, uy = db.get_train_data()
 
@@ -101,42 +97,52 @@ def active_learning_experiment():
     lx, ly = [], np.array([])
     ux, uy = db.get_train_data()
     test_x, test_y = db.get_test_data()
+    # test_x, test_y, = test_x[:100], test_y[:100]
 
-    model = ADE_Detector()
+    optimizer = Adam(
+        learning_rate=0.001,
+        epsilon=1E-6
+    )
+    model = ADE_Detector(optimizer=optimizer, class_weights=db.get_train_class_weights())
     model.fit(ux, uy)
     base_f1 = model.test(test_x, test_y)
 
-    random_runs = []
-    for budget in [10, 100, 1000]:
-        scores = []
+    for budget in [5_000]:  # [10, 100, 500, 1000]
+        ux, uy = db.get_train_data()
+        random_scores = []
         while len(ux) > 0:
-            model.reset_model()
             (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
 
+            model.reset_model()
             model.fit(lx, ly)
             f1 = model.test(test_x, test_y)
-            scores.append((f1, len(lx)))
-        random_runs.append(scores)
+            random_scores.append((f1, len(lx)))
 
-    dal_runs = []
-    for budget in [10, 100, 1000]:
-        scores = []
+        lx, ly = [], np.array([])
+        ux, uy = db.get_train_data()
+        dal_scores = []
+
+        print(len(ux))
+
         while len(ux) > 0:
             model.reset_model()
 
             (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
 
             model.reset_model()
-
             model.fit(lx, ly)
             f1 = model.test(test_x, test_y)
-            scores.append((f1, len(lx)))
-        dal_runs.append(scores)
+            dal_scores.append((f1, len(lx)))
 
-    Plotting.al_plot(base_f1, random_runs, dal_runs)
+        print(random_scores)
+
+        print(dal_scores)
+
+        Plotting.al_plot(base_f1, np.array(random_scores), np.array(dal_scores),
+                         f'Active Learning Results - Annotation Budget: {budget}')
 
 
 if __name__ == '__main__':
-    validation_testing()
-    # active_learning_experiment()
+    # validation_testing()
+    active_learning_experiment()
     # lstm_test()

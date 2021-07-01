@@ -18,7 +18,7 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # Hyper parameters
 DROPOUT = 0.7
-EPOCHS = 100
+EPOCHS = 2
 BATCH_SIZE = 250
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
@@ -205,7 +205,7 @@ class ADE_Detector:
             validation_data=val,
             class_weight=self.class_weights,
             callbacks=callbacks,
-            verbose=2
+            verbose=1
         )
 
         # self.save()
@@ -217,12 +217,15 @@ class ADE_Detector:
         :return: predictions
         """
 
+        batch_size = None
+
         if not isinstance(x, tf.keras.utils.Sequence):
             tokenizer = self.__DataGenerator(x, None, None).tokenizer
             tokenized = tokenizer(x, padding=True, truncation=True, max_length=512, return_tensors='tf')
             x = (tokenized['input_ids'], tokenized['attention_mask'])
+            batch_size = BATCH_SIZE // 2
 
-        return self.model.predict(x, batch_size=BATCH_SIZE)
+        return self.model.predict(x, batch_size=batch_size, verbose=1)
 
     def test(self, x, y_true):
         """
@@ -231,7 +234,7 @@ class ADE_Detector:
         :param y_true: true labels
         :return: f1 score for positive class
         """
-        x = self.__DataGenerator(x, y_true, BATCH_SIZE, bert_model=self.bert_model)
+        x = self.__DataGenerator(x, y_true, BATCH_SIZE // 2, bert_model=self.bert_model)
         y_true = y_true.argmax(axis=1)
         y_pred = self.predict(x).argmax(axis=1)
 

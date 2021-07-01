@@ -31,15 +31,16 @@ def random_active_learning(labeled, unlabeled, annotation_budget):
     return (lx, ly), (ux, uy)
 
 
-def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=None):
+def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=None, mini_queries=1000):
     """
     Discriminative Active Learning
     :param unlabeled: the unlabeled dataset
     :param annotation_budget: the number of samples to pull from the dataset
+    :param model: Binary classifier for DAL
+    :param mini_queries: Number of samples to select before retraining model
     :return: the new labeled and unlabeled datasets
     """
     classifier = ADE_Detector() if model is None else model
-    mini_queries = 10  # n
 
     lx, ly = labeled
     ux, uy = unlabeled

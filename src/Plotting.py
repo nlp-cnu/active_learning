@@ -5,37 +5,27 @@ import seaborn as sns
 import tensorboard as tb
 
 
-def al_plot(base_f1, random_runs, dal_runs):
-    pass
-
-
-def plot_test_graph(baseline_f1, random_al_f1_list, num_samples_list, file_name):
-    """
-    Plots a graph of baseline performance to a random AL model
-    :param baseline_f1:
-    :param random_al_f1_list:
-    :param num_samples_list:
-    :param file_name: File to save plot to
-    """
-    print(baseline_f1)
-    print(random_al_f1_list)
-    print(num_samples_list)
-
+def al_plot(base_f1, random_runs, dal_runs, fig_name):
     fig = plt.figure()
 
     ax = fig.add_subplot(1, 1, 1)
-    ax.set_title("F1-Score Over Number of Samples")
+    ax.set_title(fig_name)
     ax.set_xlabel("Number of Samples")
     ax.set_ylabel("F1-Score")
 
-    ax.hlines(baseline_f1, xmin=min(num_samples_list), xmax=max(num_samples_list),
-              linestyles='dashed', label='Full Dataset', color='green')
+    # baseline
+    ax.hlines(base_f1, xmin=0, xmax=max(random_runs[:, 1]), linestyles='dashed', label='Full Dataset', color='blue')
 
-    ax.plot(num_samples_list, random_al_f1_list, label='Random AL', color='red')
+    # Random AL
+    ax.plot(random_runs[:, 1], random_runs[:, 0], label='Random AL', color='red')
+
+    # DAL
+    ax.plot(dal_runs[:, 1], dal_runs[:, 0], label='DAL', color='green')
+
     ax.legend(loc='lower right')
 
     plt.show()
-    fig.savefig(file_name)
+    fig.savefig(f'{fig_name}.png')
 
 
 def plot_from_tensorboard():
