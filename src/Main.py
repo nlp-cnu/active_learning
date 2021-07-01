@@ -107,7 +107,7 @@ def active_learning_experiment():
     model.fit(ux, uy)
     base_f1 = model.test(test_x, test_y)
 
-    for budget in [5_000]:  # [10, 100, 500, 1000]
+    for budget in [10, 100, 500, 1000]:  # [10, 100, 500, 1000]
         ux, uy = db.get_train_data()
         random_scores = []
         while len(ux) > 0:
