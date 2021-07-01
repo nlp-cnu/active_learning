@@ -18,7 +18,7 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # Hyper parameters
 DROPOUT = 0.7
-EPOCHS = 2
+EPOCHS = 100
 BATCH_SIZE = 250
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'

@@ -2,6 +2,8 @@ import os
 import shutil
 
 # Remove excessive tf log messages
+import sklearn.model_selection
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from sklearn.model_selection import StratifiedKFold
@@ -104,7 +106,7 @@ def active_learning_experiment():
         epsilon=1E-6
     )
     model = ADE_Detector(optimizer=optimizer, class_weights=db.get_train_class_weights())
-    model.fit(ux, uy)
+    model.fit(ux, uy, val=(test_x, test_y))
     base_f1 = model.test(test_x, test_y)
 
     for budget in [10, 100, 500, 1000]:  # [10, 100, 500, 1000]
@@ -114,7 +116,7 @@ def active_learning_experiment():
             (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
 
             model.reset_model()
-            model.fit(lx, ly)
+            model.fit(lx, ly, val=(test_x, test_y))
             f1 = model.test(test_x, test_y)
             random_scores.append((f1, len(lx)))
 
@@ -130,7 +132,7 @@ def active_learning_experiment():
             (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
 
             model.reset_model()
-            model.fit(lx, ly)
+            model.fit(lx, ly, val=(test_x, test_y))
             f1 = model.test(test_x, test_y)
             dal_scores.append((f1, len(lx)))
 
