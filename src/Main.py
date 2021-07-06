@@ -109,31 +109,31 @@ def active_learning_experiment():
     )
     model = ADE_Detector(optimizer=optimizer, class_weights=db.get_train_class_weights())
 
-    # model.fit(x, y, val=(test_x, test_y))
-    # base_f1 = model.test(test_x, test_y)
+    model.fit(x, y, val=(test_x, test_y))
+    base_f1 = model.test(test_x, test_y)
 
     base_path = os.path.join(SCORES_PATH, 'base_f1.csv')
-    # with open(base_path, 'w+') as f:
-    #     f.write('f1_score,dataset_size\n')
-    #     f.write(f'{base_f1},{len(x)}\n')
+    with open(base_path, 'w+') as f:
+        f.write('f1_score,dataset_size\n')
+        f.write(f'{base_f1},{len(x)}\n')
 
     del x, y
 
     for budget in [1000, 500, 100, 10]:
-        # lx, ly = [], np.array([])
-        # ux, uy = db.get_train_data()
-        #
-        # random_path = os.path.join(SCORES_PATH, f'random_f1_{budget}.csv')
-        # with open(random_path, 'w+') as f:
-        #     f.write('f1_score,dataset_size\n')
-        #     while len(ux) > 0:
-        #         (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
-        #         model.reset_model()
-        #
-        #         model.fit(lx, ly, val=(test_x, test_y))
-        #         f1 = model.test(test_x, test_y)
-        #         f.write(f'{f1},{len(lx)}\n')
-        #         f.flush()
+        lx, ly = [], np.array([])
+        ux, uy = db.get_train_data()
+
+        random_path = os.path.join(SCORES_PATH, f'random_f1_{budget}.csv')
+        with open(random_path, 'w+') as f:
+            f.write('f1_score,dataset_size\n')
+            while len(ux) > 0:
+                (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
+                model.reset_model()
+
+                model.fit(lx, ly, val=(test_x, test_y))
+                f1 = model.test(test_x, test_y)
+                f.write(f'{f1},{len(lx)}\n')
+                f.flush()
 
         lx, ly = [], np.array([])
         ux, uy = db.get_train_data()

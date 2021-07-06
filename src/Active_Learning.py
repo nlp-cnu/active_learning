@@ -79,9 +79,6 @@ def main():
     lx, ly = [], np.array([])
     ux, uy = db.get_train_data()
 
-    ux = ux[:1000]
-    uy = uy[:1000]
-
     budget = 100
     for _ in range(10):
         (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget)
