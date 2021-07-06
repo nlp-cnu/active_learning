@@ -31,7 +31,7 @@ def random_active_learning(labeled, unlabeled, annotation_budget):
     return (lx, ly), (ux, uy)
 
 
-def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=None, mini_queries=1000):
+def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=None, mini_queries=10):
     """
     Discriminative Active Learning
     :param unlabeled: the unlabeled dataset
@@ -45,7 +45,7 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
     lx, ly = labeled
     ux, uy = unlabeled
 
-    if len(lx) == 0:
+    if len(lx) == 0 or len(ux) < annotation_budget:
         return random_active_learning(labeled, unlabeled, annotation_budget)
 
     for _ in range(mini_queries):
@@ -54,7 +54,7 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
         x = lx + ux
         y = np.array([(1, 0) for _ in range(len(lx))] + [(0, 1) for _ in range(len(ux))])
 
-        classifier.fit(x, y, monitor='loss')
+        classifier.fit(x, y)
 
         batch_selection = annotation_budget // mini_queries
         for _ in range(batch_selection):

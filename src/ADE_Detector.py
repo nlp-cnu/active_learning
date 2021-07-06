@@ -101,6 +101,8 @@ class ADE_Detector:
         self.num_dense, self.dense_size, self.dense_activation = num_dense, dense_size, dense_activation
 
         self.bert_model = bert_model
+        self.bert = TFAutoModel.from_pretrained(self.bert_model)
+        self.bert.trainable = False
 
         self.class_weights = class_weights
         self.optimizer = optimizer
@@ -143,8 +145,6 @@ class ADE_Detector:
         Creates a classification model with a BERT embedding layer
         :return:
         """
-        self.bert = TFAutoModel.from_pretrained(self.bert_model)
-        self.bert.trainable = False
 
         self.classifier = self.__make_classifier()
 
@@ -175,7 +175,7 @@ class ADE_Detector:
         """
         return max(learning_rate * np.exp(0.001 * -epoch), 0.00001)
 
-    def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False, monitor='val_positive_class_F1'):
+    def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False):
 
         train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
 
@@ -187,17 +187,25 @@ class ADE_Detector:
         if lr_scheduler:
             callbacks.append(LearningRateScheduler(self.__scheduler))
 
+        monitor = 'loss'
+        mode = 'min'
+        delta = 0
+
         if val is not None:
-            val = self.__DataGenerator(val[0], val[1], BATCH_SIZE, bert_model=self.bert_model)
-            callbacks.append(
-                EarlyStopping(
-                    monitor=monitor,
-                    mode='max' if monitor == 'val_positive_class_F1' else 'auto',  # want value to increase
-                    min_delta=0.001,
-                    patience=5,
-                    restore_best_weights=True
-                )
+            val = self.__DataGenerator(val[0], val[1], BATCH_SIZE // 2, bert_model=self.bert_model)
+            monitor = 'val_positive_class_F1'
+            mode = 'max'
+            delta = 0.001
+
+        callbacks.append(
+            EarlyStopping(
+                monitor=monitor,
+                mode=mode,
+                min_delta=delta,
+                patience=5,
+                restore_best_weights=True
             )
+        )
 
         self.model.fit(
             train,
@@ -205,7 +213,7 @@ class ADE_Detector:
             validation_data=val,
             class_weight=self.class_weights,
             callbacks=callbacks,
-            verbose=1
+            verbose=2
         )
 
         # self.save()

@@ -2,7 +2,6 @@ import os
 import shutil
 
 # Remove excessive tf log messages
-import sklearn.model_selection
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -20,6 +19,10 @@ try:
     shutil.rmtree(os.path.join('..', 'logs'))
 except FileNotFoundError:
     pass
+
+SCORES_PATH = os.path.join('..', 'active_learning_scores')
+if not os.path.exists(SCORES_PATH):
+    os.mkdir(SCORES_PATH)
 
 TIME_STAMP = datetime.now().strftime('%m-%d_%H-%M-%S')
 
@@ -96,51 +99,59 @@ def tune_mini_queries():
 
 
 def active_learning_experiment():
-    lx, ly = [], np.array([])
-    ux, uy = db.get_train_data()
+
+    x, y = db.get_train_data()
     test_x, test_y = db.get_test_data()
-    # test_x, test_y, = test_x[:100], test_y[:100]
 
     optimizer = Adam(
         learning_rate=0.001,
         epsilon=1E-6
     )
     model = ADE_Detector(optimizer=optimizer, class_weights=db.get_train_class_weights())
-    model.fit(ux, uy, val=(test_x, test_y))
-    base_f1 = model.test(test_x, test_y)
 
-    for budget in [10, 100, 500, 1000]:  # [10, 100, 500, 1000]
-        ux, uy = db.get_train_data()
-        random_scores = []
-        while len(ux) > 0:
-            (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
+    # model.fit(x, y, val=(test_x, test_y))
+    # base_f1 = model.test(test_x, test_y)
 
-            model.reset_model()
-            model.fit(lx, ly, val=(test_x, test_y))
-            f1 = model.test(test_x, test_y)
-            random_scores.append((f1, len(lx)))
+    base_path = os.path.join(SCORES_PATH, 'base_f1.csv')
+    # with open(base_path, 'w+') as f:
+    #     f.write('f1_score,dataset_size\n')
+    #     f.write(f'{base_f1},{len(x)}\n')
+
+    del x, y
+
+    for budget in [1000, 500, 100, 10]:
+        # lx, ly = [], np.array([])
+        # ux, uy = db.get_train_data()
+        #
+        # random_path = os.path.join(SCORES_PATH, f'random_f1_{budget}.csv')
+        # with open(random_path, 'w+') as f:
+        #     f.write('f1_score,dataset_size\n')
+        #     while len(ux) > 0:
+        #         (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
+        #         model.reset_model()
+        #
+        #         model.fit(lx, ly, val=(test_x, test_y))
+        #         f1 = model.test(test_x, test_y)
+        #         f.write(f'{f1},{len(lx)}\n')
+        #         f.flush()
 
         lx, ly = [], np.array([])
         ux, uy = db.get_train_data()
-        dal_scores = []
 
-        print(len(ux))
+        dal_path = os.path.join(SCORES_PATH, f'dal_f1_{budget}.csv')
+        with open(dal_path, 'w+') as f:
+            f.write('f1_score,dataset_size\n')
+            while len(ux) > 0:
+                model.reset_model()
+                (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
+                model.reset_model()
 
-        while len(ux) > 0:
-            model.reset_model()
+                model.fit(lx, ly, val=(test_x, test_y))
+                f1 = model.test(test_x, test_y)
+                f.write(f'{f1},{len(lx)}\n')
+                f.flush()
 
-            (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
-
-            model.reset_model()
-            model.fit(lx, ly, val=(test_x, test_y))
-            f1 = model.test(test_x, test_y)
-            dal_scores.append((f1, len(lx)))
-
-        print(random_scores)
-
-        print(dal_scores)
-
-        Plotting.al_plot(base_f1, np.array(random_scores), np.array(dal_scores),
+        Plotting.al_plot(base_path, random_path, dal_path,
                          f'Active Learning Results - Annotation Budget: {budget}')
 
 

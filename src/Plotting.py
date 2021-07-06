@@ -5,7 +5,7 @@ import seaborn as sns
 import tensorboard as tb
 
 
-def al_plot(base_f1, random_runs, dal_runs, fig_name):
+def al_plot(base_path, random_path, dal_path, fig_name):
     fig = plt.figure()
 
     ax = fig.add_subplot(1, 1, 1)
@@ -13,14 +13,20 @@ def al_plot(base_f1, random_runs, dal_runs, fig_name):
     ax.set_xlabel("Number of Samples")
     ax.set_ylabel("F1-Score")
 
+    base_df = pd.read_csv(base_path)
+    random_df = pd.read_csv(random_path)
+    dal_df = pd.read_csv(dal_path)
+
     # baseline
-    ax.hlines(base_f1, xmin=0, xmax=max(random_runs[:, 1]), linestyles='dashed', label='Full Dataset', color='blue')
+    base_f1 = base_df.iloc[0]['f1_score']
+    xmax = base_df.iloc[0]['dataset_size']
+    ax.hlines(base_f1, xmin=0, xmax=xmax, linestyles='dashed', label='Full Dataset', color='blue')
 
     # Random AL
-    ax.plot(random_runs[:, 1], random_runs[:, 0], label='Random AL', color='red')
+    ax.plot(random_df['dataset_size'], random_df['f1_score'], label='Random AL', color='red')
 
     # DAL
-    ax.plot(dal_runs[:, 1], dal_runs[:, 0], label='DAL', color='green')
+    ax.plot(dal_df['dataset_size'], dal_df['f1_score'], label='DAL', color='green')
 
     ax.legend(loc='lower right')
 
