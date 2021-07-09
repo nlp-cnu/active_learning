@@ -48,11 +48,12 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
     if len(lx) == 0 or len(ux) < annotation_budget:
         return random_active_learning(labeled, unlabeled, annotation_budget)
 
-    for _ in range(mini_queries):
+    for i, _ in enumerate(range(mini_queries)):
+        print(f'Selecting samples with DAL: {i + 1}/{mini_queries}')
 
         # train classifier
         x = lx + ux
-        y = np.array([(1, 0) for _ in range(len(lx))] + [(0, 1) for _ in range(len(ux))])
+        y = np.array([[1, 0] for _ in range(len(lx))] + [[0, 1] for _ in range(len(ux))])
 
         classifier.fit(x, y)
 
@@ -61,10 +62,9 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
             preds = classifier.predict(ux)
             max_idx = np.argmax(preds, axis=0)[1]
 
-            lx.append(ux[max_idx])
-            ly = np.concatenate((ly, [uy[max_idx]])) if len(ly) != 0 else np.array([uy[max_idx]])
+            lx.append(ux.pop(max_idx))
 
-            ux.pop(max_idx)
+            ly = np.concatenate((ly, [uy[max_idx]])) if len(ly) != 0 else np.array([uy[max_idx]])
             uy = np.delete(uy, max_idx, axis=0)
 
         classifier.reset_model()

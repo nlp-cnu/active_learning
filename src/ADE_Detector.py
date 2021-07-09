@@ -63,15 +63,20 @@ class ADE_Detector:
 
         def __getitem__(self, idx):
             batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
-            batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
             tokenized = self.tokenizer(batch_x, padding=True, truncation=True, max_length=512, return_tensors='tf')
+            batch_x = (tokenized['input_ids'], tokenized['attention_mask'])
 
             # print the tokenized tokens
             # for i, t in enumerate(tokenized['input_ids']):
             #     print("string = ", batch_x[i])
             #     print("tokens = ", self.tokenizer.convert_ids_to_tokens(t))
 
-            return (tokenized['input_ids'], tokenized['attention_mask']), batch_y
+            if self.y is None:
+                return batch_x
+
+            batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
+
+            return batch_x, batch_y
 
         def on_epoch_end(self):
             """
@@ -159,7 +164,8 @@ class ADE_Detector:
             optimizer=self.optimizer,
             loss='categorical_crossentropy',
             metrics=[
-                PositiveClassF1()
+                'accuracy',
+                PositiveClassF1(),
             ]
         )
 
@@ -187,21 +193,19 @@ class ADE_Detector:
         if lr_scheduler:
             callbacks.append(LearningRateScheduler(self.__scheduler))
 
-        monitor = 'loss'
-        mode = 'min'
-        delta = 0
+        monitor = 'positive_class_F1'
+        mode = 'max'
+        min_delta = 0.001
 
         if val is not None:
             val = self.__DataGenerator(val[0], val[1], BATCH_SIZE // 2, bert_model=self.bert_model)
-            monitor = 'val_positive_class_F1'
-            mode = 'max'
-            delta = 0.001
+            monitor = 'val_' + monitor
 
         callbacks.append(
             EarlyStopping(
                 monitor=monitor,
                 mode=mode,
-                min_delta=delta,
+                min_delta=min_delta,
                 patience=5,
                 restore_best_weights=True
             )
@@ -233,7 +237,7 @@ class ADE_Detector:
             x = (tokenized['input_ids'], tokenized['attention_mask'])
             batch_size = BATCH_SIZE // 2
 
-        return self.model.predict(x, batch_size=batch_size, verbose=1)
+        return self.model.predict(x, batch_size=batch_size, verbose=2)
 
     def test(self, x, y_true):
         """

@@ -61,34 +61,39 @@ def cross_validation(model):
         reduced_events = reduce_events(events_dict, ['mean'])
         write_tb_events(reduced_events, output_dir)
 
-    return np.mean(scores)  # avg training
+    return np.mean(scores), np.std(scores)  # avg training
 
 
 def validation_testing():
-    scores_file = os.path.join('..', 'combination_scores.txt')
+    scores_file = os.path.join('..', 'simple_test.txt')
     with open(scores_file, 'w+') as f:
+        # model = ADE_Detector(
+        #     class_weights=db.get_train_class_weights(),
+        #     bert_model=BIOREDDITBERT
+        # )
+        #
+        # f1, sd = cross_validation(model)
+        # f.write(f'BioReddit - F1: {f1} SD: {sd}\n')
+        # f.flush()
 
-        for lr in [1.0E-2, 1.0E-3, 1.0E-4, 1.0E-5]:
-            for epsilon in [1.0E-4, 1.0E-5, 1.0E-6, 1.0E-7]:
-                for num_lstm in range(1, 3):
-                    model_name = f'LR-{lr}_EP-{epsilon}_{num_lstm}-LSTM'
-                    f.write(model_name + ': ')
+        model = ADE_Detector(
+            class_weights=db.get_train_class_weights(),
+            bert_model=ROBERTA_TWITTER
+        )
 
-                    optimizer = Adam(
-                        learning_rate=lr,
-                        epsilon=epsilon
-                    )
+        f1, sd = cross_validation(model)
+        f.write(f'RoBERTa weights - F1: {f1} SD: {sd}\n')
+        f.flush()
 
-                    model = ADE_Detector(
-                        model_name=model_name,
-                        optimizer=optimizer,
-                        num_lstm=num_lstm,
-                        class_weights=db.get_train_class_weights()
-                    )
+        model = ADE_Detector(
+            # class_weights=db.get_train_class_weights(),
+            class_weights=None,
+            bert_model=ROBERTA_TWITTER
+        )
 
-                    f1 = cross_validation(model)
-                    f.write(f'{f1}\n\n')
-                    f.flush()
+        f1, sd = cross_validation(model)
+        f.write(f'RoBERTa - F1: {f1} SD: {sd}\n')
+        f.flush()
 
 
 def tune_mini_queries():
@@ -103,12 +108,14 @@ def active_learning_experiment():
     x, y = db.get_train_data()
     test_x, test_y = db.get_test_data()
 
+    print('Creating Model')
     optimizer = Adam(
         learning_rate=0.001,
         epsilon=1E-6
     )
     model = ADE_Detector(optimizer=optimizer, class_weights=db.get_train_class_weights())
 
+    print('Testing Model on all data...')
     model.fit(x, y, val=(test_x, test_y))
     base_f1 = model.test(test_x, test_y)
 
@@ -127,9 +134,11 @@ def active_learning_experiment():
         with open(random_path, 'w+') as f:
             f.write('f1_score,dataset_size\n')
             while len(ux) > 0:
+                print('Selecting samples with random active learning...')
                 (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
                 model.reset_model()
 
+                print(f'Random Model with {len(lx)} samples')
                 model.fit(lx, ly, val=(test_x, test_y))
                 f1 = model.test(test_x, test_y)
                 f.write(f'{f1},{len(lx)}\n')
@@ -142,10 +151,12 @@ def active_learning_experiment():
         with open(dal_path, 'w+') as f:
             f.write('f1_score,dataset_size\n')
             while len(ux) > 0:
+
                 model.reset_model()
                 (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
                 model.reset_model()
 
+                print(f'DAL Model with {len(lx)} samples')
                 model.fit(lx, ly, val=(test_x, test_y))
                 f1 = model.test(test_x, test_y)
                 f.write(f'{f1},{len(lx)}\n')
