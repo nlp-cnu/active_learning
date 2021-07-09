@@ -163,7 +163,7 @@ def active_learning_experiment():
                 f.flush()
 
         Plotting.al_plot(base_path, random_path, dal_path,
-                         f'Active Learning Results - Annotation Budget: {budget}')
+                         os.path.join('..', 'active_learning_scores', f'Results_Annotation_Budget-{budget}'))
 
 
 if __name__ == '__main__':
