@@ -44,7 +44,7 @@ class Dataset:
         self.class_weights = dict(enumerate(self.class_weights))
 
     def get_train_data(self):
-        return self.train_X.copy()[:1000], self.train_Y.copy()[:1000]
+        return self.train_X.copy(), self.train_Y.copy()
 
     def get_train_class_weights(self):
         return self.class_weights
