@@ -2,6 +2,8 @@ import os
 from datetime import datetime
 
 # Remove excessive tf log messages
+from sklearn.utils import class_weight
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -20,6 +22,7 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 DROPOUT = 0.7
 EPOCHS = 100
 BATCH_SIZE = 250
+MAX_LENGTH = 250  # 512
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
 BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
@@ -63,7 +66,7 @@ class ADE_Detector:
 
         def __getitem__(self, idx):
             batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
-            tokenized = self.tokenizer(batch_x, padding=True, truncation=True, max_length=512, return_tensors='tf')
+            tokenized = self.tokenizer(batch_x, padding=True, truncation=True, max_length=MAX_LENGTH, return_tensors='tf')
             batch_x = (tokenized['input_ids'], tokenized['attention_mask'])
 
             # print the tokenized tokens
@@ -92,7 +95,7 @@ class ADE_Detector:
     def __init__(self, model_name=None, bert_model=ROBERTA_TWITTER, dropout_rate=DROPOUT,
                  num_lstm=1, lstm_size=128,
                  num_dense=1, dense_size=64, dense_activation='tanh',
-                 optimizer='adam', class_weights=None
+                 optimizer='adam'
                  ):
         """
         Makes a classification model
@@ -109,7 +112,6 @@ class ADE_Detector:
         self.bert = TFAutoModel.from_pretrained(self.bert_model)
         self.bert.trainable = False
 
-        self.class_weights = class_weights
         self.optimizer = optimizer
         self.model = self.__make_model()
 
@@ -181,7 +183,7 @@ class ADE_Detector:
         """
         return max(learning_rate * np.exp(0.001 * -epoch), 0.00001)
 
-    def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False):
+    def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False, use_class_weights=True):
 
         train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
 
@@ -190,32 +192,45 @@ class ADE_Detector:
             # ModelCheckpoint(os.path.join('..', 'models', 'checkpoints', 'temp'), save_best_only=True),
         ]
 
-        if lr_scheduler:
-            callbacks.append(LearningRateScheduler(self.__scheduler))
-
-        monitor = 'positive_class_F1'
-        mode = 'max'
+        monitor = 'loss'
+        mode = 'min'
         min_delta = 0.001
+        patience = 5
 
         if val is not None:
-            val = self.__DataGenerator(val[0], val[1], BATCH_SIZE // 2, bert_model=self.bert_model)
-            monitor = 'val_' + monitor
+            val = self.__DataGenerator(val[0], val[1], BATCH_SIZE, bert_model=self.bert_model)
+            monitor = 'val_positive_class_F1'
+            mode = 'max'
+            min_delta = 0.001
+            patience = 10
 
         callbacks.append(
             EarlyStopping(
                 monitor=monitor,
                 mode=mode,
                 min_delta=min_delta,
-                patience=5,
+                patience=patience,
                 restore_best_weights=True
             )
         )
+
+        if lr_scheduler:
+            callbacks.append(LearningRateScheduler(self.__scheduler))
+
+        class_weights = None
+        if use_class_weights:
+            class_weights = class_weight.compute_class_weight(
+                class_weight='balanced',
+                classes=np.unique(y),
+                y=y.argmax(axis=1)
+            )
+            class_weights = dict(enumerate(class_weights))
 
         self.model.fit(
             train,
             epochs=epochs,
             validation_data=val,
-            class_weight=self.class_weights,
+            class_weight=class_weights,
             callbacks=callbacks,
             verbose=2
         )
@@ -246,7 +261,7 @@ class ADE_Detector:
         :param y_true: true labels
         :return: f1 score for positive class
         """
-        x = self.__DataGenerator(x, y_true, BATCH_SIZE // 2, bert_model=self.bert_model)
+        x = self.__DataGenerator(x, y_true, BATCH_SIZE, bert_model=self.bert_model)
         y_true = y_true.argmax(axis=1)
         y_pred = self.predict(x).argmax(axis=1)
 

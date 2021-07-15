@@ -90,5 +90,9 @@ def plot_from_tensorboard():
 
 
 if __name__ == '__main__':
-    # plot_test_graph(0.5, [0.1, 0.2, 0.3, 0.4, 0.5], [100, 200, 300, 400, 500], '../test_plot.png')
-    plot_from_tensorboard()
+    import os
+    root = os.path.join('..', 'active_learning_scores')
+    base = os.path.join(root, 'base_f1.csv')
+    random = os.path.join(root, 'random_f1_1000.csv')
+    dal = os.path.join(root, 'random_f1_500.csv')
+    al_plot(base, random, dal, 'test')

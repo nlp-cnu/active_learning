@@ -42,12 +42,12 @@ def cross_validation(model):
 
     model_name = model.model_name
 
-    iterator = StratifiedKFold(n_splits=5, random_state=SEED, shuffle=True)
-    for idx, (train_idxs, val_idxs) in enumerate(iterator.split(x, y.argmax(axis=1))):
+    iterator = StratifiedKFold(n_splits=5, random_state=SEED, shuffle=True).split(x, y.argmax(axis=1))
+    for fold, (train_idxs, val_idxs) in enumerate(iterator):
         train_x, train_y = [x[idx] for idx in train_idxs], y[train_idxs]
         val_x, val_y = [x[idx] for idx in val_idxs], y[val_idxs]
 
-        model.model_name = f'{model_name}_fold_{idx + 1}'
+        model.model_name = f'{model_name}_fold_{fold + 1}'
         model.fit(train_x, train_y, (val_x, val_y))
         f1 = model.test(val_x, val_y)
         scores.append(f1)
@@ -113,7 +113,7 @@ def active_learning_experiment():
         learning_rate=0.001,
         epsilon=1E-6
     )
-    model = ADE_Detector(optimizer=optimizer, class_weights=db.get_train_class_weights())
+    model = ADE_Detector(optimizer=optimizer)
 
     print('Testing Model on all data...')
     model.fit(x, y, val=(test_x, test_y))
@@ -126,7 +126,7 @@ def active_learning_experiment():
 
     del x, y
 
-    for budget in [1000, 500, 100, 10]:
+    for budget in [1000, 500, 100]:
         lx, ly = [], np.array([])
         ux, uy = db.get_train_data()
 
@@ -151,12 +151,11 @@ def active_learning_experiment():
         with open(dal_path, 'w+') as f:
             f.write('f1_score,dataset_size\n')
             while len(ux) > 0:
-
-                model.reset_model()
+                model = ADE_Detector(dropout_rate=0.0)
                 (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
-                model.reset_model()
 
                 print(f'DAL Model with {len(lx)} samples')
+                model = ADE_Detector(optimizer=optimizer)
                 model.fit(lx, ly, val=(test_x, test_y))
                 f1 = model.test(test_x, test_y)
                 f.write(f'{f1},{len(lx)}\n')
