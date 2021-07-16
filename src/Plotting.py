@@ -93,6 +93,6 @@ if __name__ == '__main__':
     import os
     root = os.path.join('..', 'active_learning_scores')
     base = os.path.join(root, 'base_f1.csv')
-    random = os.path.join(root, 'random_f1_1000.csv')
+    random = os.path.join(root, 'random_f1_1000_class_weights.csv')
     dal = os.path.join(root, 'random_f1_500.csv')
     al_plot(base, random, dal, 'test')

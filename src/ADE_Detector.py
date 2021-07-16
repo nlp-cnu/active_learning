@@ -22,7 +22,7 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 DROPOUT = 0.7
 EPOCHS = 100
 BATCH_SIZE = 250
-MAX_LENGTH = 250  # 512
+MAX_LENGTH = 54  # 512 max
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
 BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
@@ -30,10 +30,10 @@ SEED = 2005
 
 
 class PositiveClassF1(tf.keras.metrics.Metric):
-    def __init__(self, name="positive_class_F1", **kwargs):
+    def __init__(self, name="positive_class_F1", class_id=1, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.recall = tf.keras.metrics.Recall(class_id=1)
-        self.precision = tf.keras.metrics.Precision(class_id=1)
+        self.recall = tf.keras.metrics.Recall(class_id=class_id)
+        self.precision = tf.keras.metrics.Precision(class_id=class_id)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         self.recall.update_state(y_true, y_pred, sample_weight)
@@ -218,7 +218,7 @@ class ADE_Detector:
             callbacks.append(LearningRateScheduler(self.__scheduler))
 
         class_weights = None
-        if use_class_weights:
+        if use_class_weights and len(np.unique(y)) == 1:
             class_weights = class_weight.compute_class_weight(
                 class_weight='balanced',
                 classes=np.unique(y),

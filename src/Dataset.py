@@ -15,7 +15,7 @@ class Dataset:
 
         def preprocess_data(data):
             # preprocess tweets to remove mentions, URL's
-            p.set_options(p.OPT.MENTION, p.OPT.URL)  # P.OPT.HASHTAG, p.OPT.EMOJI
+            p.set_options(p.OPT.MENTION, p.OPT.URL)  # p.OPT.HASHTAG, p.OPT.EMOJI
             data = data.apply(p.clean)
 
             # Tokenize special Tweet characters
@@ -26,9 +26,9 @@ class Dataset:
 
         # read in data
         data_filepath = os.path.join('..', 'data', 'full_dataset.tsv')
-        df = pd.read_csv(data_filepath, header=None, names=['Tweet', 'Label'], delimiter='\t').dropna()
-        data = preprocess_data(df['Tweet'])
-        labels = self.label_encoder.fit_transform(df['Label'].values.reshape(-1, 1))
+        df = pd.read_csv(data_filepath, header=None, names=['tweet', 'label'], delimiter='\t').dropna()
+        data = preprocess_data(df['tweet'])
+        labels = self.label_encoder.fit_transform(df['label'].values.reshape(-1, 1))
 
         # Split data
         self.train_X, self.test_X, self.train_Y, self.test_Y = train_test_split(data, labels,

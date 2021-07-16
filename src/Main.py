@@ -105,44 +105,44 @@ def tune_mini_queries():
 
 def active_learning_experiment():
 
-    x, y = db.get_train_data()
+    # x, y = db.get_train_data()
     test_x, test_y = db.get_test_data()
 
-    print('Creating Model')
+    # print('Creating Model')
     optimizer = Adam(
         learning_rate=0.001,
         epsilon=1E-6
     )
-    model = ADE_Detector(optimizer=optimizer)
+    # model = ADE_Detector(optimizer=optimizer)
 
-    print('Testing Model on all data...')
-    model.fit(x, y, val=(test_x, test_y))
-    base_f1 = model.test(test_x, test_y)
+    # print('Testing Model on all data...')
+    # model.fit(x, y, val=(test_x, test_y))
+    # base_f1 = model.test(test_x, test_y)
 
-    base_path = os.path.join(SCORES_PATH, 'base_f1.csv')
-    with open(base_path, 'w+') as f:
-        f.write('f1_score,dataset_size\n')
-        f.write(f'{base_f1},{len(x)}\n')
+    # base_path = os.path.join(SCORES_PATH, 'base_f1.csv')
+    # with open(base_path, 'w+') as f:
+    #     f.write('f1_score,dataset_size\n')
+    #     f.write(f'{base_f1},{len(x)}\n')
 
-    del x, y
+    # del x, y
 
     for budget in [1000, 500, 100]:
-        lx, ly = [], np.array([])
-        ux, uy = db.get_train_data()
-
-        random_path = os.path.join(SCORES_PATH, f'random_f1_{budget}.csv')
-        with open(random_path, 'w+') as f:
-            f.write('f1_score,dataset_size\n')
-            while len(ux) > 0:
-                print('Selecting samples with random active learning...')
-                (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
-                model.reset_model()
-
-                print(f'Random Model with {len(lx)} samples')
-                model.fit(lx, ly, val=(test_x, test_y))
-                f1 = model.test(test_x, test_y)
-                f.write(f'{f1},{len(lx)}\n')
-                f.flush()
+        # lx, ly = [], np.array([])
+        # ux, uy = db.get_train_data()
+        #
+        # random_path = os.path.join(SCORES_PATH, f'random_f1_{budget}.csv')
+        # with open(random_path, 'w+') as f:
+        #     f.write('f1_score,dataset_size\n')
+        #     while len(ux) > 0:
+        #         print('Selecting samples with random active learning...')
+        #         (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
+        #         model.reset_model()
+        #
+        #         print(f'Random Model with {len(lx)} samples')
+        #         model.fit(lx, ly, val=(test_x, test_y))
+        #         f1 = model.test(test_x, test_y)
+        #         f.write(f'{f1},{len(lx)}\n')
+        #         f.flush()
 
         lx, ly = [], np.array([])
         ux, uy = db.get_train_data()
@@ -161,8 +161,8 @@ def active_learning_experiment():
                 f.write(f'{f1},{len(lx)}\n')
                 f.flush()
 
-        Plotting.al_plot(base_path, random_path, dal_path,
-                         os.path.join('..', 'active_learning_scores', f'Results_Annotation_Budget-{budget}'))
+        # Plotting.al_plot(base_path, random_path, dal_path,
+        #                  os.path.join('..', 'active_learning_scores', f'Results_Annotation_Budget-{budget}'))
 
 
 if __name__ == '__main__':

@@ -1,50 +1,34 @@
-num_positive = 0
-num_negative = 0
-# with open('full_dataset.tsv.tsv', encoding='utf8') as f:
-#     for line in f:
-#         # print(line)
-#         label = line.rstrip().split('\t')[1]
-#
-#         if label == '1':
-#             # print(line)
-#             num_positive += 1
-#         else:
-#             num_negative += 1
+import numpy as np
+import pandas
+from transformers import AutoTokenizer
+import preprocessor as p
 
-# print(f'Positive Samples: {num_positive}')
-# print(f'Negative Samples: {num_negative}')
+df = pandas.read_csv('full_dataset.tsv', header=None, names=['tweet', 'label'], delimiter='\t').dropna()
+data = df['tweet']
 
-# training_samples = 0
-# test_samples = 0
+# preprocess tweets to remove mentions, URL's
+p.set_options(p.OPT.MENTION, p.OPT.URL)  # p.OPT.HASHTAG, p.OPT.EMOJI
+data = data.apply(p.clean)
 
-file_1_samples = 0
-with open('training_set_1_ids.txt', encoding='utf8') as f:
-    for line in f:
-        file_1_samples += 1
+# Tokenize special Tweet characters
+# p.set_options()  # p.OPT.EMOJI, p.OPT.SMILEY, p.OPT.RESERVED, p.OPT.NUMBER, p.OPT.HASHTAG
+# data = data.apply(p.tokenize)
 
-# with open('train.tsv', encoding='utf8') as f:
-#     for line in f:
-#         training_samples += 1
+tokenizer = AutoTokenizer.from_pretrained('cardiffnlp/twitter-roberta-base')
+tokenized = tokenizer(list(data))
 
-# with open('validation.tsv', encoding='utf8') as f:
-#     for line in f:
-#         training_samples += 1
+num_tokens = []
+for sample in tokenized['input_ids']:
+    num_tokens.append(len(sample))
 
-# with open('test.tsv', encoding='utf8') as f:
-#     for line in f:
-#         test_samples += 1
+avg = np.average(num_tokens)
+std = np.std(num_tokens)
 
-file_2_samples = 0
-with open('training_set_2_ids.txt', encoding='utf8') as f:
-    for line in f:
-        file_2_samples += 1
+print(f'Average tokens: {avg}')
+print(f'Std Dev: {std}')
+print(f'avg + (2 * std) = {avg + (2 * std)}')
+print(f"Max tokens: {np.max(num_tokens)}")
+print(len([x for x in num_tokens if x > 64]))
 
-file_3_samples = 0
-with open('evaluation_set_ids.txt', encoding='utf8') as f:
-    for line in f:
-        file_3_samples += 1
-
-print(file_1_samples)
-print(file_2_samples)
-print(file_3_samples)
-print(f'{num_negative + num_positive} retrieved out of {file_1_samples + file_2_samples + file_3_samples}')
+# justify reductions to max tokens: Due to memory constrains and training speed,
+# reduces max tokens to avg + 2 std dev, cuts off 2.2% of total samples
