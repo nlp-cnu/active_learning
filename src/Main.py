@@ -26,6 +26,7 @@ if not os.path.exists(SCORES_PATH):
 
 TIME_STAMP = datetime.now().strftime('%m-%d_%H-%M-%S')
 
+random.seed(SEED)
 db = Dataset(seed=SEED)
 
 
@@ -77,7 +78,6 @@ def validation_testing():
         # f.flush()
 
         model = ADE_Detector(
-            class_weights=db.get_train_class_weights(),
             bert_model=ROBERTA_TWITTER
         )
 
@@ -86,8 +86,6 @@ def validation_testing():
         f.flush()
 
         model = ADE_Detector(
-            # class_weights=db.get_train_class_weights(),
-            class_weights=None,
             bert_model=ROBERTA_TWITTER
         )
 
@@ -96,27 +94,25 @@ def validation_testing():
         f.flush()
 
 
-def tune_mini_queries():
-    lx, ly = [], np.array([])
-    ux, uy = db.get_train_data()
-
-    model = ADE_Detector()
-
-
 def active_learning_experiment():
 
     # x, y = db.get_train_data()
     test_x, test_y = db.get_test_data()
 
-    # print('Creating Model')
+    budget = 50
+    max_size = 1000
+    random_path = os.path.join(SCORES_PATH, f'random_f1_{budget}.csv')
+    dal_path = os.path.join(SCORES_PATH, f'dal_f1_{budget}.csv')
+
+    print('Creating Model')
     optimizer = Adam(
         learning_rate=0.001,
         epsilon=1E-6
     )
-    # model = ADE_Detector(optimizer=optimizer)
+    model = ADE_Detector(optimizer=optimizer)
 
     # print('Testing Model on all data...')
-    # model.fit(x, y, val=(test_x, test_y))
+    # model.fit(x, y, val=(test_x, test_y), use_class_weights=False)
     # base_f1 = model.test(test_x, test_y)
 
     # base_path = os.path.join(SCORES_PATH, 'base_f1.csv')
@@ -126,43 +122,64 @@ def active_learning_experiment():
 
     # del x, y
 
-    for budget in [1000, 500, 100]:
-        # lx, ly = [], np.array([])
-        # ux, uy = db.get_train_data()
-        #
-        # random_path = os.path.join(SCORES_PATH, f'random_f1_{budget}.csv')
-        # with open(random_path, 'w+') as f:
-        #     f.write('f1_score,dataset_size\n')
-        #     while len(ux) > 0:
-        #         print('Selecting samples with random active learning...')
-        #         (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
-        #         model.reset_model()
-        #
-        #         print(f'Random Model with {len(lx)} samples')
-        #         model.fit(lx, ly, val=(test_x, test_y))
-        #         f1 = model.test(test_x, test_y)
-        #         f.write(f'{f1},{len(lx)}\n')
-        #         f.flush()
-
+    def get_datasets():
         lx, ly = [], np.array([])
         ux, uy = db.get_train_data()
 
-        dal_path = os.path.join(SCORES_PATH, f'dal_f1_{budget}.csv')
-        with open(dal_path, 'w+') as f:
-            f.write('f1_score,dataset_size\n')
-            while len(ux) > 0:
-                model = ADE_Detector(dropout_rate=0.0)
-                (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
+        # first 100 samples are positive
+        idxs = []
+        for idx, (neg, pos) in enumerate(uy):
+            if pos:
+                idxs.append(idx)
+            if len(idxs) == 100:
+                break
 
-                print(f'DAL Model with {len(lx)} samples')
-                model = ADE_Detector(optimizer=optimizer)
-                model.fit(lx, ly, val=(test_x, test_y))
-                f1 = model.test(test_x, test_y)
-                f.write(f'{f1},{len(lx)}\n')
-                f.flush()
+        for idx in sorted(idxs, reverse=True):
+            lx.append(ux.pop(idx))
+            ly = np.concatenate((ly, [uy[idx]])) if len(ly) != 0 else np.array([uy[idx]])
+            uy = np.delete(uy, idx, axis=0)
 
-        # Plotting.al_plot(base_path, random_path, dal_path,
-        #                  os.path.join('..', 'active_learning_scores', f'Results_Annotation_Budget-{budget}'))
+        # second 100 samples get randomly selected and labeled as negative
+        random.seed(SEED)
+        idxs = random.sample(range(len(uy)), 100)
+        for idx in sorted(idxs, reverse=True):
+            lx.append(ux.pop(idx))
+            ly = np.concatenate((ly, [[1, 0]]))
+            uy = np.delete(uy, idx, axis=0)
+
+        return (lx, ly), (ux, uy)
+
+    (lx, ly), (ux, uy) = get_datasets()
+    with open(random_path, 'w+') as f:
+        f.write('f1_score,dataset_size\n')
+        while len(lx) < max_size:
+            print('Selecting samples with random active learning...')
+            (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
+            print(f'pos / tot : {len([y for y in ly if y[1] == 1])} / {len(ly)}')
+            model.reset_model()
+
+            print(f'Random Model with {len(lx)} samples')
+            model.fit(lx, ly, val=(test_x, test_y), use_class_weights=False)
+            f1 = model.test(test_x, test_y)
+            f.write(f'{f1},{len(lx)}\n')
+            f.flush()
+
+    (lx, ly), (ux, uy) = get_datasets()
+    with open(dal_path, 'w+') as f:
+        f.write('f1_score,dataset_size\n')
+        while len(lx) < max_size:
+            model = ADE_Detector(dropout_rate=0.0)
+            (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
+
+            print(f'DAL Model with {len(lx)} samples')
+            model = ADE_Detector(optimizer=optimizer)
+            model.fit(lx, ly, val=(test_x, test_y), use_class_weights=False)
+            f1 = model.test(test_x, test_y)
+            f.write(f'{f1},{len(lx)}\n')
+            f.flush()
+
+    # Plotting.al_plot(base_path, random_path, dal_path,
+    #                  os.path.join('..', 'active_learning_scores', f'Results_Annotation_Budget-{budget}'))
 
 
 if __name__ == '__main__':

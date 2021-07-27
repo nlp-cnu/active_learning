@@ -19,14 +19,32 @@ physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # Hyper parameters
-DROPOUT = 0.7
+DROPOUT = 0.0
 EPOCHS = 100
-BATCH_SIZE = 250
+BATCH_SIZE = 1500
 MAX_LENGTH = 54  # 512 max
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
 BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
 SEED = 2005
+np.random.seed(SEED)
+
+
+class DALCallback(tf.keras.callbacks.Callback):
+    def __init__(self, monitor='accuracy', goal_score=0.95):
+        super().__init__()
+        self.monitor = monitor
+        self.goal_score = goal_score
+        self.verbose = 0
+
+    def on_epoch_end(self, epoch, logs=None):
+        quantity = logs[self.monitor]
+
+        if quantity >= self.goal_score:
+            self.model.stop_training = True
+
+    def on_train_batch_end(self, batch, logs=None):
+        pass
 
 
 class PositiveClassF1(tf.keras.metrics.Metric):
@@ -168,6 +186,8 @@ class ADE_Detector:
             metrics=[
                 'accuracy',
                 PositiveClassF1(),
+                # tf.keras.metrics.Recall(class_id=1),
+                # tf.keras.metrics.Precision(class_id=1)
             ]
         )
 
@@ -192,33 +212,32 @@ class ADE_Detector:
             # ModelCheckpoint(os.path.join('..', 'models', 'checkpoints', 'temp'), save_best_only=True),
         ]
 
-        monitor = 'loss'
-        mode = 'min'
-        min_delta = 0.001
-        patience = 5
-
         if val is not None:
             val = self.__DataGenerator(val[0], val[1], BATCH_SIZE, bert_model=self.bert_model)
             monitor = 'val_positive_class_F1'
             mode = 'max'
             min_delta = 0.001
-            patience = 10
-
-        callbacks.append(
-            EarlyStopping(
-                monitor=monitor,
-                mode=mode,
-                min_delta=min_delta,
-                patience=patience,
-                restore_best_weights=True
+            patience = 15
+            callbacks.append(
+                EarlyStopping(
+                    monitor=monitor,
+                    mode=mode,
+                    min_delta=min_delta,
+                    patience=patience,
+                    restore_best_weights=True
+                )
             )
-        )
+
+        else:
+            callbacks.append(
+                DALCallback()
+            )
 
         if lr_scheduler:
             callbacks.append(LearningRateScheduler(self.__scheduler))
 
         class_weights = None
-        if use_class_weights and len(np.unique(y)) == 1:
+        if use_class_weights:
             class_weights = class_weight.compute_class_weight(
                 class_weight='balanced',
                 classes=np.unique(y),
@@ -252,7 +271,7 @@ class ADE_Detector:
             x = (tokenized['input_ids'], tokenized['attention_mask'])
             batch_size = BATCH_SIZE // 2
 
-        return self.model.predict(x, batch_size=batch_size, verbose=2)
+        return self.model.predict(x, batch_size=batch_size, verbose=0)
 
     def test(self, x, y_true):
         """

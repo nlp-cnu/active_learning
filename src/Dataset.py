@@ -9,7 +9,7 @@ from sklearn.utils import class_weight
 
 
 class Dataset:
-    def __init__(self, seed=3):  # use_all_data=False,
+    def __init__(self, data_filepath=None, seed=3):  # use_all_data=False,
         self.seed = seed
         self.label_encoder = OneHotEncoder(sparse=False)
 
@@ -25,7 +25,9 @@ class Dataset:
             return data.tolist()
 
         # read in data
-        data_filepath = os.path.join('..', 'data', 'full_dataset.tsv')
+        if data_filepath is None:
+            data_filepath = os.path.join('..', 'data', 'full_dataset.tsv')
+
         df = pd.read_csv(data_filepath, header=None, names=['tweet', 'label'], delimiter='\t').dropna()
         data = preprocess_data(df['tweet'])
         labels = self.label_encoder.fit_transform(df['label'].values.reshape(-1, 1))

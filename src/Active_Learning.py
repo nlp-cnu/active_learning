@@ -17,7 +17,7 @@ def random_active_learning(labeled, unlabeled, annotation_budget):
     ux, uy = unlabeled
 
     try:
-        idxs = sorted(random.sample(range(len(uy)), annotation_budget))
+        idxs = random.sample(range(len(uy)), annotation_budget)
     except ValueError:
         # annotation budget larger than remaining samples
         idxs = list(range(len(uy)))
