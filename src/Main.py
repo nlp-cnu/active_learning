@@ -2,17 +2,18 @@ import os
 import shutil
 
 # Remove excessive tf log messages
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from sklearn.model_selection import StratifiedKFold
 from tensorboard_reducer import load_tb_events, reduce_events, write_tb_events
 from tensorflow.keras.optimizers import *
 
-import Plotting
 from ADE_Detector import *
 from Active_Learning import *
 from Dataset import Dataset
+
+# Remove excessive tf log messages
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Delete Logs folder automatically for new runs
 try:
@@ -26,7 +27,6 @@ if not os.path.exists(SCORES_PATH):
 
 TIME_STAMP = datetime.now().strftime('%m-%d_%H-%M-%S')
 
-random.seed(SEED)
 db = Dataset(seed=SEED)
 
 
@@ -50,7 +50,7 @@ def cross_validation(model):
 
         model.model_name = f'{model_name}_fold_{fold + 1}'
         model.fit(train_x, train_y, (val_x, val_y))
-        f1 = model.test(val_x, val_y)
+        f1 = model.eval(val_x, val_y)
         scores.append(f1)
 
         model.reset_model()
@@ -94,92 +94,116 @@ def validation_testing():
         f.flush()
 
 
-def active_learning_experiment():
+def get_initial_datasets(seed=SEED):
+    rng = np.random.default_rng(seed=seed)
 
-    # x, y = db.get_train_data()
+    initial_selection_size = 100
+
+    lx, ly = [], np.array([])
+    ux, uy = db.get_train_data()
+
+    # first 100 samples are randomly selected positive instances
+    idxs = np.where(uy[:, 1])[0]
+    rng.shuffle(idxs)
+    for idx in sorted(idxs[:initial_selection_size], reverse=True):
+        lx.append(ux.pop(idx))
+        ly = np.concatenate((ly, [uy[idx]])) if len(ly) != 0 else np.array([uy[idx]])
+        uy = np.delete(uy, idx, axis=0)
+
+    # second 100 samples are randomly selected and labeled as negative
+    idxs = rng.choice(len(uy), initial_selection_size, replace=False)
+    for idx in sorted(idxs, reverse=True):
+        lx.append(ux.pop(idx))
+        ly = np.concatenate((ly, [[1, 0]]))
+        uy = np.delete(uy, idx, axis=0)
+
+    return (lx, ly), (ux, uy)
+
+
+# get initial datasets with heuristic instead of using labels
+def get_initial_datasets_with_heuristic(seed=SEED):
+    pass
+
+
+def train_models(labeled, unlabeled, budget, max_dataset_size, file_path):
+
+    (lx, ly), (ux, uy) = labeled, unlabeled
     test_x, test_y = db.get_test_data()
 
-    budget = 50
-    max_size = 1000
-    random_path = os.path.join(SCORES_PATH, f'random_f1_{budget}.csv')
-    dal_path = os.path.join(SCORES_PATH, f'dal_f1_{budget}.csv')
-
-    print('Creating Model')
     optimizer = Adam(
         learning_rate=0.001,
         epsilon=1E-6
     )
     model = ADE_Detector(optimizer=optimizer)
 
-    # print('Testing Model on all data...')
-    # model.fit(x, y, val=(test_x, test_y), use_class_weights=False)
-    # base_f1 = model.test(test_x, test_y)
+    with open(file_path, 'a+') as f:
+        if len(lx) > 0:
+            print('Testing on initial dataset')
 
-    # base_path = os.path.join(SCORES_PATH, 'base_f1.csv')
-    # with open(base_path, 'w+') as f:
-    #     f.write('f1_score,dataset_size\n')
-    #     f.write(f'{base_f1},{len(x)}\n')
+            model.fit(lx, ly, val=(test_x, test_y), use_class_weights=False)
+            f1 = model.eval(test_x, test_y)
 
-    # del x, y
+            f.write(f'{f1},{len(lx)}\n')
+            f.flush()
 
-    def get_datasets():
-        lx, ly = [], np.array([])
-        ux, uy = db.get_train_data()
+        while len(lx) < max_dataset_size:
+            if 'random' in file_path:
+                selection_type = 'random'
+                (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
+            else:
+                selection_type = 'DAL'
+                model.reset_model()
+                (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
 
-        # first 100 samples are positive
-        idxs = []
-        for idx, (neg, pos) in enumerate(uy):
-            if pos:
-                idxs.append(idx)
-            if len(idxs) == 100:
-                break
+            print(f'Training model with {len(lx)} samples selected by {selection_type}...')
 
-        for idx in sorted(idxs, reverse=True):
-            lx.append(ux.pop(idx))
-            ly = np.concatenate((ly, [uy[idx]])) if len(ly) != 0 else np.array([uy[idx]])
-            uy = np.delete(uy, idx, axis=0)
-
-        # second 100 samples get randomly selected and labeled as negative
-        random.seed(SEED)
-        idxs = random.sample(range(len(uy)), 100)
-        for idx in sorted(idxs, reverse=True):
-            lx.append(ux.pop(idx))
-            ly = np.concatenate((ly, [[1, 0]]))
-            uy = np.delete(uy, idx, axis=0)
-
-        return (lx, ly), (ux, uy)
-
-    (lx, ly), (ux, uy) = get_datasets()
-    with open(random_path, 'w+') as f:
-        f.write('f1_score,dataset_size\n')
-        while len(lx) < max_size:
-            print('Selecting samples with random active learning...')
-            (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
-            print(f'pos / tot : {len([y for y in ly if y[1] == 1])} / {len(ly)}')
             model.reset_model()
-
-            print(f'Random Model with {len(lx)} samples')
             model.fit(lx, ly, val=(test_x, test_y), use_class_weights=False)
-            f1 = model.test(test_x, test_y)
+            f1 = model.eval(test_x, test_y)
+
             f.write(f'{f1},{len(lx)}\n')
             f.flush()
 
-    (lx, ly), (ux, uy) = get_datasets()
-    with open(dal_path, 'w+') as f:
-        f.write('f1_score,dataset_size\n')
-        while len(lx) < max_size:
-            model = ADE_Detector(dropout_rate=0.0)
-            (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
 
-            print(f'DAL Model with {len(lx)} samples')
-            model = ADE_Detector(optimizer=optimizer)
-            model.fit(lx, ly, val=(test_x, test_y), use_class_weights=False)
-            f1 = model.test(test_x, test_y)
-            f.write(f'{f1},{len(lx)}\n')
-            f.flush()
+def active_learning_experiment():
+    for budget, max_dataset_size in [(50, 1000), (500, len(db.get_train_data()[1]))]:
 
-    # Plotting.al_plot(base_path, random_path, dal_path,
-    #                  os.path.join('..', 'active_learning_scores', f'Results_Annotation_Budget-{budget}'))
+        random_path = os.path.join(SCORES_PATH, f'random_f1_balanced_start_{max_dataset_size}.csv')
+        dal_path = os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{max_dataset_size}.csv')
+
+        with open(random_path, 'w+') as f:
+            f.write('f1_score,dataset_size\n')
+
+        with open(dal_path, 'w+') as f:
+            f.write('f1_score,dataset_size\n')
+
+        # test with balanced start
+        rng_seeds = [1556, 1354, 9380, 5715, 8639]
+        for idx, seed in enumerate(rng_seeds):
+            for file_path in [random_path, dal_path]:
+                labeled, unlabeled = get_initial_datasets(seed)
+                train_models(labeled, unlabeled, budget, max_dataset_size, file_path)
+
+        random_path = os.path.join(SCORES_PATH, f'random_f1_{max_dataset_size}.csv')
+        dal_path = os.path.join(SCORES_PATH, f'dal_f1_{max_dataset_size}.csv')
+
+        with open(random_path, 'w+') as f:
+            f.write('f1_score,dataset_size\n')
+
+        with open(dal_path, 'w+') as f:
+            f.write('f1_score,dataset_size\n')
+
+        # test from scratch
+        for idx in range(5):
+            for file_path in [random_path, dal_path]:
+                labeled, unlabeled = db.get_train_data()
+                train_models(labeled, unlabeled, budget, max_dataset_size, file_path)
+
+
+# generate 1 graph w/o positive start avg over 5 runs up to 1000 samples
+# generate 1 graph w/ positive start avg over 5 runs up to 1000 samples
+# 1 graph w/o positive start up to dataset size interval of 500
+# 1 graph w/ positive start up to dataset size interval of 500
 
 
 if __name__ == '__main__':

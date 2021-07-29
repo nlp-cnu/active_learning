@@ -1,5 +1,4 @@
 import os
-import random
 
 import numpy as np
 
@@ -16,11 +15,13 @@ def random_active_learning(labeled, unlabeled, annotation_budget):
     lx, ly = labeled
     ux, uy = unlabeled
 
+    rng = np.random.default_rng()
+
     try:
-        idxs = random.sample(range(len(uy)), annotation_budget)
+        idxs = rng.choice(len(uy), annotation_budget, replace=False)
     except ValueError:
         # annotation budget larger than remaining samples
-        idxs = list(range(len(uy)))
+        idxs = np.arange(len(uy))
 
     lx += [ux[idx] for idx in idxs]
     ly = np.concatenate([ly, uy[idxs]]) if len(ly) != 0 else uy[idxs]
@@ -41,7 +42,7 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
     :param mini_queries: Number of samples to select before retraining model
     :return: the new labeled and unlabeled datasets
     """
-    classifier = ADE_Detector(dropout_rate=0.0) if model is None else model
+    model = ADE_Detector(dropout_rate=0.0) if model is None else model
 
     lx, ly = labeled
     ux, uy = unlabeled
@@ -56,9 +57,9 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
         x = lx + ux
         y = np.array([[1, 0] for _ in range(len(lx))] + [[0, 1] for _ in range(len(ux))])
 
-        classifier.fit(x, y, use_class_weights=False)
+        model.fit(x, y, use_class_weights=False)
 
-        preds = classifier.predict(ux)
+        preds = model.predict(ux)
 
         batch_selection = annotation_budget // mini_queries
         selected_samples_path = os.path.join('..', 'active_learning_scores', f'DAL_{annotation_budget}_selected_samples.tsv')
@@ -78,7 +79,7 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
 
             f.write('-' * 30 + '\n')
 
-        classifier.reset_model()
+        model.reset_model()
 
     return (lx, ly), (ux, uy)
 
@@ -91,8 +92,9 @@ def main():
     ux, uy = db.get_train_data()
 
     budget = 500
-    for _ in range(10):
-        (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget)
+    while len(ux) > 0:
+        (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
+        print(len(ux))
 
 
 if __name__ == '__main__':

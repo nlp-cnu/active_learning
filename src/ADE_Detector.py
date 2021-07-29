@@ -2,17 +2,17 @@ import os
 from datetime import datetime
 
 # Remove excessive tf log messages
-from sklearn.utils import class_weight
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import classification_report, f1_score
+from sklearn.utils import class_weight
 from tensorflow.keras import Model, Sequential
 from tensorflow.keras.callbacks import *
 from tensorflow.keras.layers import *
 from transformers import TFAutoModel, AutoTokenizer
+
 
 # Fix TF for my computer (enable memory growth)
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -21,8 +21,8 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 # Hyper parameters
 DROPOUT = 0.0
 EPOCHS = 100
-BATCH_SIZE = 1500
-MAX_LENGTH = 54  # 512 max
+BATCH_SIZE = 1200
+MAX_LENGTH = 71  # 512 max
 BASEBERT = 'bert-base-uncased'
 ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
 BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
@@ -30,7 +30,7 @@ SEED = 2005
 np.random.seed(SEED)
 
 
-class DALCallback(tf.keras.callbacks.Callback):
+class DALStopping(tf.keras.callbacks.Callback):
     def __init__(self, monitor='accuracy', goal_score=0.95):
         super().__init__()
         self.monitor = monitor
@@ -112,7 +112,7 @@ class ADE_Detector:
 
     def __init__(self, model_name=None, bert_model=ROBERTA_TWITTER, dropout_rate=DROPOUT,
                  num_lstm=1, lstm_size=128,
-                 num_dense=1, dense_size=64, dense_activation='tanh',
+                 num_dense=1, dense_size=64, dense_activation='gelu',
                  optimizer='adam'
                  ):
         """
@@ -193,19 +193,10 @@ class ADE_Detector:
 
         return model
 
-    @staticmethod
-    def __scheduler(epoch, learning_rate):
-        """
-        Learning rate scheduler, reduces learning rate over time
-        :param epoch:
-        :param learning_rate:
-        :return: updated learning rate
-        """
-        return max(learning_rate * np.exp(0.001 * -epoch), 0.00001)
-
-    def fit(self, x, y, val=None, epochs=EPOCHS, lr_scheduler=False, use_class_weights=True):
+    def fit(self, x, y, val=None, epochs=EPOCHS, use_class_weights=True):
 
         train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
+        verbose = 2
 
         callbacks = [
             TensorBoard(os.path.join('..', 'logs', self.model_name)),
@@ -217,7 +208,7 @@ class ADE_Detector:
             monitor = 'val_positive_class_F1'
             mode = 'max'
             min_delta = 0.001
-            patience = 15
+            patience = 20
             callbacks.append(
                 EarlyStopping(
                     monitor=monitor,
@@ -229,12 +220,10 @@ class ADE_Detector:
             )
 
         else:
+            verbose = 0
             callbacks.append(
-                DALCallback()
+                DALStopping()
             )
-
-        if lr_scheduler:
-            callbacks.append(LearningRateScheduler(self.__scheduler))
 
         class_weights = None
         if use_class_weights:
@@ -245,16 +234,16 @@ class ADE_Detector:
             )
             class_weights = dict(enumerate(class_weights))
 
-        self.model.fit(
+        history = self.model.fit(
             train,
             epochs=epochs,
             validation_data=val,
             class_weight=class_weights,
             callbacks=callbacks,
-            verbose=2
+            verbose=verbose
         )
 
-        # self.save()
+        return history
 
     def predict(self, x):
         """
@@ -273,13 +262,14 @@ class ADE_Detector:
 
         return self.model.predict(x, batch_size=batch_size, verbose=0)
 
-    def test(self, x, y_true):
+    def eval(self, x, y_true):
         """
         performs an F1 test on the test data for the positive class
         :param x: data
         :param y_true: true labels
         :return: f1 score for positive class
         """
+
         x = self.__DataGenerator(x, y_true, BATCH_SIZE, bert_model=self.bert_model)
         y_true = y_true.argmax(axis=1)
         y_pred = self.predict(x).argmax(axis=1)
