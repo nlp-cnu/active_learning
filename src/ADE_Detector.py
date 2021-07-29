@@ -77,7 +77,7 @@ class ADE_Detector:
             self.x, self.y = x_set, y_set
             self.batch_size = batch_size
             self.shuffle = shuffle
-            self.tokenizer = AutoTokenizer.from_pretrained(bert_model)
+            self.tokenizer = AutoTokenizer.from_pretrained(bert_model, cache_dir='BERT_tokenizer')
 
         def __len__(self):
             return int(np.ceil(len(self.x) / self.batch_size))
@@ -127,7 +127,7 @@ class ADE_Detector:
         self.num_dense, self.dense_size, self.dense_activation = num_dense, dense_size, dense_activation
 
         self.bert_model = bert_model
-        self.bert = TFAutoModel.from_pretrained(self.bert_model)
+        self.bert = TFAutoModel.from_pretrained(self.bert_model, cache_dir='BERT_model')
         self.bert.trainable = False
 
         self.optimizer = optimizer
