@@ -23,6 +23,8 @@ def random_active_learning(labeled, unlabeled, annotation_budget):
         # annotation budget larger than remaining samples
         idxs = np.arange(len(uy))
 
+    os.path.join('..', 'active_learning_scores', f'random_{annotation_budget}_selected_samples.tsv')
+
     lx += [ux[idx] for idx in idxs]
     ly = np.concatenate([ly, uy[idxs]]) if len(ly) != 0 else uy[idxs]
 

@@ -2,6 +2,8 @@ import os
 import shutil
 
 # Remove excessive tf log messages
+import numpy as np
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from sklearn.model_selection import StratifiedKFold
@@ -196,7 +198,8 @@ def active_learning_experiment():
         # test from scratch
         for idx in range(5):
             for file_path in [random_path, dal_path]:
-                labeled, unlabeled = db.get_train_data()
+                labeled = [], np.array([])
+                unlabeled = db.get_train_data()
                 train_models(labeled, unlabeled, budget, max_dataset_size, file_path)
 
 

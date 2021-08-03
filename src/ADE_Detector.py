@@ -20,7 +20,7 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # Hyper parameters
 DROPOUT = 0.0
-EPOCHS = 100
+EPOCHS = 2
 BATCH_SIZE = 1200
 MAX_LENGTH = 71  # 512 max
 BASEBERT = 'bert-base-uncased'
@@ -31,10 +31,15 @@ np.random.seed(SEED)
 
 
 class DALStopping(tf.keras.callbacks.Callback):
-    def __init__(self, monitor='accuracy', goal_score=0.95):
+    def __init__(self, monitor='accuracy', target_score=0.95):
+        """
+        Early stopping for DAL classifier.
+        :param monitor: Metric to monitor. Defaults to accuracy.
+        :param target_score: Target value for metric. Training stops when target is met or exceeded.
+        """
         super().__init__()
         self.monitor = monitor
-        self.goal_score = goal_score
+        self.goal_score = target_score
         self.verbose = 0
 
     def on_epoch_end(self, epoch, logs=None):
@@ -43,12 +48,15 @@ class DALStopping(tf.keras.callbacks.Callback):
         if quantity >= self.goal_score:
             self.model.stop_training = True
 
-    def on_train_batch_end(self, batch, logs=None):
-        pass
-
 
 class PositiveClassF1(tf.keras.metrics.Metric):
     def __init__(self, name="positive_class_F1", class_id=1, **kwargs):
+        """
+        Custom F1 score metric. Designed to monitor the F1 score of a particular class.
+        :param name: Name of metric.
+        :param class_id: Index of class to monitor.
+        :param kwargs:
+        """
         super().__init__(name=name, **kwargs)
         self.recall = tf.keras.metrics.Recall(class_id=class_id)
         self.precision = tf.keras.metrics.Precision(class_id=class_id)
@@ -74,6 +82,14 @@ class PositiveClassF1(tf.keras.metrics.Metric):
 class ADE_Detector:
     class __DataGenerator(tf.keras.utils.Sequence):
         def __init__(self, x_set, y_set, batch_size, bert_model=BASEBERT, shuffle=True):
+            """
+
+            :param x_set:
+            :param y_set:
+            :param batch_size:
+            :param bert_model:
+            :param shuffle:
+            """
             self.x, self.y = x_set, y_set
             self.batch_size = batch_size
             self.shuffle = shuffle
@@ -116,7 +132,16 @@ class ADE_Detector:
                  optimizer='adam'
                  ):
         """
-        Makes a classification model
+
+        :param model_name:
+        :param bert_model:
+        :param dropout_rate:
+        :param num_lstm:
+        :param lstm_size:
+        :param num_dense:
+        :param dense_size:
+        :param dense_activation:
+        :param optimizer:
         """
 
         self.model_name = model_name if model_name is not None else datetime.now().strftime('%m-%d_%H-%M-%S')
@@ -194,6 +219,15 @@ class ADE_Detector:
         return model
 
     def fit(self, x, y, val=None, epochs=EPOCHS, use_class_weights=True):
+        """
+        Trains a model.
+        :param x:
+        :param y:
+        :param val:
+        :param epochs:
+        :param use_class_weights:
+        :return:
+        """
 
         train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
         verbose = 2
