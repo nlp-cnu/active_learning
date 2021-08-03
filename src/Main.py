@@ -2,7 +2,6 @@ import os
 import shutil
 
 # Remove excessive tf log messages
-import numpy as np
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -96,10 +95,14 @@ def validation_testing():
         f.flush()
 
 
-def get_initial_datasets(seed=SEED):
+def get_initial_datasets(initial_dataset_size=200, seed=SEED):
+    """
+    Creates an artificially balanced labeled dataset for active learning.
+    :param initial_dataset_size: Size of labeled dataset.
+    :param seed: Seed for RNG.
+    :return:
+    """
     rng = np.random.default_rng(seed=seed)
-
-    initial_selection_size = 100
 
     lx, ly = [], np.array([])
     ux, uy = db.get_train_data()
@@ -107,13 +110,13 @@ def get_initial_datasets(seed=SEED):
     # first 100 samples are randomly selected positive instances
     idxs = np.where(uy[:, 1])[0]
     rng.shuffle(idxs)
-    for idx in sorted(idxs[:initial_selection_size], reverse=True):
+    for idx in sorted(idxs[:initial_dataset_size // 2], reverse=True):
         lx.append(ux.pop(idx))
         ly = np.concatenate((ly, [uy[idx]])) if len(ly) != 0 else np.array([uy[idx]])
         uy = np.delete(uy, idx, axis=0)
 
     # second 100 samples are randomly selected and labeled as negative
-    idxs = rng.choice(len(uy), initial_selection_size, replace=False)
+    idxs = rng.choice(len(uy), initial_dataset_size // 2, replace=False)
     for idx in sorted(idxs, reverse=True):
         lx.append(ux.pop(idx))
         ly = np.concatenate((ly, [[1, 0]]))
@@ -127,8 +130,17 @@ def get_initial_datasets_with_heuristic(seed=SEED):
     pass
 
 
-def train_models(labeled, unlabeled, budget, max_dataset_size, file_path):
+def train_models(labeled: tuple[list, np.ndarray], unlabeled: tuple[list, np.ndarray], budget: int,
+                 max_dataset_size: int, file_path: str):
+    """
 
+    :param labeled:
+    :param unlabeled:
+    :param budget:
+    :param max_dataset_size:
+    :param file_path:
+    :return:
+    """
     (lx, ly), (ux, uy) = labeled, unlabeled
     test_x, test_y = db.get_test_data()
 
@@ -142,7 +154,7 @@ def train_models(labeled, unlabeled, budget, max_dataset_size, file_path):
         if len(lx) > 0:
             print('Testing on initial dataset')
 
-            model.fit(lx, ly, val=(test_x, test_y), use_class_weights=False)
+            model.fit(lx, ly, val_data=(test_x, test_y), use_class_weights=False)
             f1 = model.eval(test_x, test_y)
 
             f.write(f'{f1},{len(lx)}\n')
@@ -160,7 +172,7 @@ def train_models(labeled, unlabeled, budget, max_dataset_size, file_path):
             print(f'Training model with {len(lx)} samples selected by {selection_type}...')
 
             model.reset_model()
-            model.fit(lx, ly, val=(test_x, test_y), use_class_weights=False)
+            model.fit(lx, ly, val_data=(test_x, test_y), use_class_weights=False)
             f1 = model.eval(test_x, test_y)
 
             f.write(f'{f1},{len(lx)}\n')

@@ -13,14 +13,13 @@ from tensorflow.keras.callbacks import *
 from tensorflow.keras.layers import *
 from transformers import TFAutoModel, AutoTokenizer
 
-
 # Fix TF for my computer (enable memory growth)
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # Hyper parameters
 DROPOUT = 0.0
-EPOCHS = 2
+EPOCHS = 1000
 BATCH_SIZE = 1200
 MAX_LENGTH = 71  # 512 max
 BASEBERT = 'bert-base-uncased'
@@ -100,7 +99,8 @@ class ADE_Detector:
 
         def __getitem__(self, idx):
             batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
-            tokenized = self.tokenizer(batch_x, padding=True, truncation=True, max_length=MAX_LENGTH, return_tensors='tf')
+            tokenized = self.tokenizer(batch_x, padding=True, truncation=True, max_length=MAX_LENGTH,
+                                       return_tensors='tf')
             batch_x = (tokenized['input_ids'], tokenized['attention_mask'])
 
             # print the tokenized tokens
@@ -218,18 +218,18 @@ class ADE_Detector:
 
         return model
 
-    def fit(self, x, y, val=None, epochs=EPOCHS, use_class_weights=True):
+    def fit(self, x: list, y: np.ndarray, val_data=None, epochs=EPOCHS, use_class_weights=True):
         """
         Trains a model.
-        :param x:
-        :param y:
-        :param val:
-        :param epochs:
-        :param use_class_weights:
+        :param x: Inputs
+        :param y: Expected outputs
+        :param val_data: validation data
+        :param epochs: number of epochs to train for
+        :param use_class_weights: whether to use class weights or not
         :return:
         """
 
-        train = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
+        train_data = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
         verbose = 2
 
         callbacks = [
@@ -237,12 +237,12 @@ class ADE_Detector:
             # ModelCheckpoint(os.path.join('..', 'models', 'checkpoints', 'temp'), save_best_only=True),
         ]
 
-        if val is not None:
-            val = self.__DataGenerator(val[0], val[1], BATCH_SIZE, bert_model=self.bert_model)
+        if val_data is not None:
+            val_data = self.__DataGenerator(val_data[0], val_data[1], BATCH_SIZE, bert_model=self.bert_model)
             monitor = 'val_positive_class_F1'
             mode = 'max'
             min_delta = 0.001
-            patience = 20
+            patience = epochs // 4
             callbacks.append(
                 EarlyStopping(
                     monitor=monitor,
@@ -269,9 +269,9 @@ class ADE_Detector:
             class_weights = dict(enumerate(class_weights))
 
         history = self.model.fit(
-            train,
+            train_data,
+            validation_data=val_data,
             epochs=epochs,
-            validation_data=val,
             class_weight=class_weights,
             callbacks=callbacks,
             verbose=verbose

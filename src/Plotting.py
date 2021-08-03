@@ -1,47 +1,38 @@
+import os
+
 import pandas as pd
+import seaborn as sns
 from matplotlib import pyplot as plt
 
 
-def al_plot(base_path, random_path, dal_path, fig_name):
-    fig = plt.figure()
+def plot(random_path, dal_path, title):
+    random_df = pd.read_csv(random_path)
+    dal_df = pd.read_csv(dal_path)
 
-    ax = fig.add_subplot(1, 1, 1)
-    ax.set_title(fig_name)
-    ax.set_xlabel("Number of Samples")
-    ax.set_ylabel("F1-Score")
+    x = 'dataset_size'
+    y = 'f1_score'
 
-    # read in data
-    base_df = pd.read_csv(base_path)
-    random_df = pd.read_csv(random_path, na_values=0).dropna()
-    dal_df = pd.read_csv(dal_path, na_values=0).dropna()
+    sns.set_theme(style='whitegrid')
+    sns.lineplot(x=x, y=y, data=random_df, ci='sd', err_style='band',
+                 marker='o', linestyle='dashed', label='Random')
+    sns.lineplot(x=x, y=y, data=dal_df, ci='sd', err_style='band',
+                 marker='o', linestyle='solid', label='DAL')
 
-    # baseline
-    base_f1 = base_df.iloc[0]['f1_score']
-    xmin = random_df.iloc[0]['dataset_size']
-    xmax = random_df.iloc[-1]['dataset_size']
-    # ax.hlines(base_f1, xmin=xmin, xmax=xmax, linestyles='dotted', label='Full Dataset', color='blue')
-
-    # Random AL
-    ax.plot(random_df['dataset_size'], random_df['f1_score'],
-            color='purple', marker='o', linestyle='dashed', label='Random')
-
-    # DAL
-    ax.plot(dal_df['dataset_size'], dal_df['f1_score'],
-            color='red', marker='o', linestyle='solid', label='DAL', )
-
-    ax.legend(loc='lower right')
-    # plt.xticks(np.arange(xmin, xmax + 1, 50))
-
+    plt.title(title.replace('_', ' ').capitalize())
+    plt.xlabel(x.replace('_', ' ').capitalize())
+    plt.ylabel(y.replace('_', ' ').capitalize())
+    plt.legend(loc='lower right')
     plt.show()
-    fig.savefig(os.path.join('..', 'active_learning_scores', f'{fig_name}.png'))
+
+    plt.savefig(os.path.join('..', 'active_learning_scores', f'{title}.png'))
 
 
 if __name__ == '__main__':
-    import os
     root = os.path.join('..', 'active_learning_scores')
 
-    base = os.path.join(root, 'base_f1.csv')
-    random = os.path.join(root, 'random_f1_50_0.csv')
-    dal = os.path.join(root, 'random_f1_50.csv')
+    random = os.path.join(root, 'random_f1_balanced_start_1000.csv')
+    dal = os.path.join(root, 'dal_f1_balanced_start_1000.csv')
 
-    al_plot(base, random, dal, 'Results')
+    title = 'balanced_start_results_1000'
+
+    plot(random, dal, title)
