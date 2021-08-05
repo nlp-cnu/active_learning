@@ -13,20 +13,11 @@ from tensorflow.keras.callbacks import *
 from tensorflow.keras.layers import *
 from transformers import TFAutoModel, AutoTokenizer
 
+from Utils import *
+
 # Fix TF for my computer (enable memory growth)
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
-# Hyper parameters
-DROPOUT = 0.0
-EPOCHS = 1000
-BATCH_SIZE = 1200
-MAX_LENGTH = 71  # 512 max
-BASEBERT = 'bert-base-uncased'
-ROBERTA_TWITTER = 'cardiffnlp/twitter-roberta-base'
-BIOREDDITBERT = 'cambridgeltl/BioRedditBERT-uncased'
-SEED = 2005
-np.random.seed(SEED)
 
 
 class DALStopping(tf.keras.callbacks.Callback):
@@ -42,13 +33,42 @@ class DALStopping(tf.keras.callbacks.Callback):
         self.verbose = 0
 
     def on_epoch_end(self, epoch, logs=None):
-        quantity = logs[self.monitor]
 
+        # Only stop after 1st epoch
+        if epoch == 0:
+            return
+
+        quantity = self.__get_monitor_value(logs)
         if quantity >= self.goal_score:
             self.model.stop_training = True
 
+    def __get_monitor_value(self, logs):
+        logs = logs or {}
+        monitor_value = logs.get(self.monitor)
+        if monitor_value is None:
+            raise ValueError
 
-class PositiveClassF1(tf.keras.metrics.Metric):
+        return monitor_value
+
+
+class EarlyStoppingNoZero(tf.keras.callbacks.EarlyStopping):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def on_epoch_end(self, epoch, logs=None):
+
+        # Only check after 1st epoch
+        if epoch == 0:
+            return
+
+        quantity = self.get_monitor_value(logs)
+        if quantity == 0:
+            return
+
+        super().on_epoch_end(epoch, logs)
+
+
+class SingleClassF1(tf.keras.metrics.Metric):
     def __init__(self, name="positive_class_F1", class_id=1, **kwargs):
         """
         Custom F1 score metric. Designed to monitor the F1 score of a particular class.
@@ -80,7 +100,7 @@ class PositiveClassF1(tf.keras.metrics.Metric):
 
 class ADE_Detector:
     class __DataGenerator(tf.keras.utils.Sequence):
-        def __init__(self, x_set, y_set, batch_size, bert_model=BASEBERT, shuffle=True):
+        def __init__(self, x_set, y_set, batch_size, bert_model=BERT_BASE, shuffle=True):
             """
 
             :param x_set:
@@ -92,6 +112,7 @@ class ADE_Detector:
             self.x, self.y = x_set, y_set
             self.batch_size = batch_size
             self.shuffle = shuffle
+            self.rng = np.random.default_rng(seed=SEED)
             self.tokenizer = AutoTokenizer.from_pretrained(bert_model, cache_dir='BERT_tokenizer')
 
         def __len__(self):
@@ -99,7 +120,7 @@ class ADE_Detector:
 
         def __getitem__(self, idx):
             batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
-            tokenized = self.tokenizer(batch_x, padding=True, truncation=True, max_length=MAX_LENGTH,
+            tokenized = self.tokenizer(batch_x, padding=True, truncation=True, max_length=MAX_TOKEN_LENGTH,
                                        return_tensors='tf')
             batch_x = (tokenized['input_ids'], tokenized['attention_mask'])
 
@@ -122,14 +143,15 @@ class ADE_Detector:
             """
             if self.shuffle:
                 idxs = np.arange(len(self.x))
-                np.random.shuffle(idxs)
+                self.rng.shuffle(idxs)
                 self.x = [self.x[idx] for idx in idxs]
                 self.y = self.y[idxs]
 
     def __init__(self, model_name=None, bert_model=ROBERTA_TWITTER, dropout_rate=DROPOUT,
                  num_lstm=1, lstm_size=128,
                  num_dense=1, dense_size=64, dense_activation='gelu',
-                 optimizer='adam'
+                 optimizer='adam',
+                 monitor_idx=1
                  ):
         """
 
@@ -143,6 +165,8 @@ class ADE_Detector:
         :param dense_activation:
         :param optimizer:
         """
+
+        self.monitor_idx = monitor_idx
 
         self.model_name = model_name if model_name is not None else datetime.now().strftime('%m-%d_%H-%M-%S')
 
@@ -163,6 +187,8 @@ class ADE_Detector:
         Creates the actual classification layer
         :return:
         """
+        np.random.seed(SEED)
+        tf.random.set_seed(SEED)
 
         classifier = Sequential()
 
@@ -210,7 +236,7 @@ class ADE_Detector:
             loss='categorical_crossentropy',
             metrics=[
                 'accuracy',
-                PositiveClassF1(),
+                SingleClassF1(class_id=self.monitor_idx),
                 # tf.keras.metrics.Recall(class_id=1),
                 # tf.keras.metrics.Precision(class_id=1)
             ]
@@ -233,7 +259,7 @@ class ADE_Detector:
         verbose = 2
 
         callbacks = [
-            TensorBoard(os.path.join('..', 'logs', self.model_name)),
+            # TensorBoard(os.path.join('..', 'logs', self.model_name)),
             # ModelCheckpoint(os.path.join('..', 'models', 'checkpoints', 'temp'), save_best_only=True),
         ]
 
@@ -242,9 +268,9 @@ class ADE_Detector:
             monitor = 'val_positive_class_F1'
             mode = 'max'
             min_delta = 0.001
-            patience = epochs // 4
+            patience = 5
             callbacks.append(
-                EarlyStopping(
+                EarlyStoppingNoZero(
                     monitor=monitor,
                     mode=mode,
                     min_delta=min_delta,
@@ -310,7 +336,7 @@ class ADE_Detector:
 
         print(classification_report(y_true, y_pred, zero_division=True))
 
-        return f1_score(y_true, y_pred, pos_label=1)
+        return f1_score(y_true, y_pred, pos_label=self.monitor_idx)
 
     def save(self, filepath=None):
         """

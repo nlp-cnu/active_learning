@@ -1,20 +1,13 @@
 import os
 import shutil
+from datetime import datetime
 
-# Remove excessive tf log messages
+import numpy as np
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
-from sklearn.model_selection import StratifiedKFold
-from tensorboard_reducer import load_tb_events, reduce_events, write_tb_events
-from tensorflow.keras.optimizers import *
-
-from ADE_Detector import *
-from Active_Learning import *
+from ADE_Detector import ADE_Detector
+from Active_Learning import random_active_learning, discriminative_active_learning
 from Dataset import Dataset
-
-# Remove excessive tf log messages
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+from Utils import *
 
 # Delete Logs folder automatically for new runs
 try:
@@ -37,6 +30,8 @@ def cross_validation(model):
     :param model: an untrained model
     :return:
     """
+    from sklearn.model_selection import StratifiedKFold
+    from tensorboard_reducer import load_tb_events, reduce_events, write_tb_events
 
     x, y = db.get_train_data()
 
@@ -95,60 +90,56 @@ def validation_testing():
         f.flush()
 
 
-def get_initial_datasets(initial_dataset_size=200, seed=SEED):
+def get_initial_datasets(initial_dataset_size=200, positive_class_idx=1, seed=SEED):
     """
     Creates an artificially balanced labeled dataset for active learning.
     :param initial_dataset_size: Size of labeled dataset.
+    :param positive_class_idx: Index of class to monitor.
     :param seed: Seed for RNG.
-    :return:
+    :return: Pre-balanced labeled dataset
     """
     rng = np.random.default_rng(seed=seed)
 
     lx, ly = [], np.array([])
     ux, uy = db.get_train_data()
 
-    # first 100 samples are randomly selected positive instances
-    idxs = np.where(uy[:, 1])[0]
+    # first n / 2 samples are randomly selected positive instances
+    idxs = np.where(uy[:, positive_class_idx])[0]
     rng.shuffle(idxs)
-    for idx in sorted(idxs[:initial_dataset_size // 2], reverse=True):
+    idxs = idxs[:initial_dataset_size // 2]
+    for idx in sorted(idxs, reverse=True):
         lx.append(ux.pop(idx))
         ly = np.concatenate((ly, [uy[idx]])) if len(ly) != 0 else np.array([uy[idx]])
         uy = np.delete(uy, idx, axis=0)
 
-    # second 100 samples are randomly selected and labeled as negative
+    # second n / 2 samples are randomly selected and labeled as negative
     idxs = rng.choice(len(uy), initial_dataset_size // 2, replace=False)
+    neg_label = [0, 1] if positive_class_idx == 0 else [1, 0]
     for idx in sorted(idxs, reverse=True):
         lx.append(ux.pop(idx))
-        ly = np.concatenate((ly, [[1, 0]]))
+        ly = np.concatenate((ly, [neg_label]))
         uy = np.delete(uy, idx, axis=0)
 
     return (lx, ly), (ux, uy)
-
-
-# get initial datasets with heuristic instead of using labels
-def get_initial_datasets_with_heuristic(seed=SEED):
-    pass
 
 
 def train_models(labeled: tuple[list, np.ndarray], unlabeled: tuple[list, np.ndarray], budget: int,
                  max_dataset_size: int, file_path: str):
     """
 
-    :param labeled:
-    :param unlabeled:
-    :param budget:
-    :param max_dataset_size:
-    :param file_path:
-    :return:
+    :param labeled: The labeled dataset.
+    :param unlabeled: The unlabeled dataset.
+    :param budget: Number of samples to annotate per selection round.
+    :param max_dataset_size: Maximum size of the labeled dataset.
+    :param file_path: File to write scores to.
     """
     (lx, ly), (ux, uy) = labeled, unlabeled
     test_x, test_y = db.get_test_data()
 
-    optimizer = Adam(
-        learning_rate=0.001,
-        epsilon=1E-6
-    )
-    model = ADE_Detector(optimizer=optimizer)
+    if max_dataset_size is None or max_dataset_size == 0:
+        max_dataset_size = len(uy)
+
+    model = ADE_Detector()
 
     with open(file_path, 'a+') as f:
         if len(lx) > 0:
@@ -170,7 +161,6 @@ def train_models(labeled: tuple[list, np.ndarray], unlabeled: tuple[list, np.nda
                 (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
 
             print(f'Training model with {len(lx)} samples selected by {selection_type}...')
-
             model.reset_model()
             model.fit(lx, ly, val_data=(test_x, test_y), use_class_weights=False)
             f1 = model.eval(test_x, test_y)
@@ -180,48 +170,33 @@ def train_models(labeled: tuple[list, np.ndarray], unlabeled: tuple[list, np.nda
 
 
 def active_learning_experiment():
-    for budget, max_dataset_size in [(50, 1000), (500, len(db.get_train_data()[1]))]:
+    balanced_dataset_size = 1000
 
-        random_path = os.path.join(SCORES_PATH, f'random_f1_balanced_start_{max_dataset_size}.csv')
-        dal_path = os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{max_dataset_size}.csv')
+    random_balanced_path = os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv')
+    dal_balanced_path = os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv')
+    random_path = os.path.join(SCORES_PATH, f'random_f1.csv')
+    dal_path = os.path.join(SCORES_PATH, f'dal_f1.csv')
 
-        with open(random_path, 'w+') as f:
+    for path in [random_balanced_path, dal_balanced_path, random_path, dal_path]:
+
+        with open(path, 'w+') as f:
             f.write('f1_score,dataset_size\n')
+            f.flush()
 
-        with open(dal_path, 'w+') as f:
-            f.write('f1_score,dataset_size\n')
-
-        # test with balanced start
-        rng_seeds = [1556, 1354, 9380, 5715, 8639]
-        for idx, seed in enumerate(rng_seeds):
-            for file_path in [random_path, dal_path]:
-                labeled, unlabeled = get_initial_datasets(seed)
-                train_models(labeled, unlabeled, budget, max_dataset_size, file_path)
-
-        random_path = os.path.join(SCORES_PATH, f'random_f1_{max_dataset_size}.csv')
-        dal_path = os.path.join(SCORES_PATH, f'dal_f1_{max_dataset_size}.csv')
-
-        with open(random_path, 'w+') as f:
-            f.write('f1_score,dataset_size\n')
-
-        with open(dal_path, 'w+') as f:
-            f.write('f1_score,dataset_size\n')
-
-        # test from scratch
-        for idx in range(5):
-            for file_path in [random_path, dal_path]:
-                labeled = [], np.array([])
-                unlabeled = db.get_train_data()
-                train_models(labeled, unlabeled, budget, max_dataset_size, file_path)
-
-
-# generate 1 graph w/o positive start avg over 5 runs up to 1000 samples
-# generate 1 graph w/ positive start avg over 5 runs up to 1000 samples
-# 1 graph w/o positive start up to dataset size interval of 500
-# 1 graph w/ positive start up to dataset size interval of 500
+            if 'balanced' in path:
+                budget = 50
+                rng_seeds = [1556, 1354, 9380, 5715, 8639]
+                for seed in rng_seeds:
+                    labeled, unlabeled = get_initial_datasets(seed=seed)
+                    train_models(labeled, unlabeled, budget, balanced_dataset_size, path)
+            else:
+                budget = 1000
+                for _ in range(5):
+                    labeled = [], np.array([])
+                    unlabeled = db.get_train_data()
+                    train_models(labeled, unlabeled, budget, db.get_train_size(), path)
 
 
 if __name__ == '__main__':
     # validation_testing()
     active_learning_experiment()
-    # lstm_test()

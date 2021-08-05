@@ -1,11 +1,9 @@
 import os
 
-import numpy as np
 import pandas as pd
 import preprocessor as p
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.utils import class_weight
 
 
 class Dataset:
@@ -28,34 +26,36 @@ class Dataset:
         if data_filepath is None:
             data_filepath = os.path.join('..', 'data', 'full_dataset.tsv')
 
-        df = pd.read_csv(data_filepath, header=None, names=['tweet', 'label'], delimiter='\t').dropna()
-        data = preprocess_data(df['tweet'])
-        labels = self.label_encoder.fit_transform(df['label'].values.reshape(-1, 1))
+        df = pd.read_csv(data_filepath, delimiter='\t').dropna()
+        data = preprocess_data(df['sentence'])
+
+        if 'ISEAR' in data_filepath:
+            labels = [['other'] if label != 'fear' else [label] for label in df['label'].values]
+        else:
+            labels = df['label'].values.reshape(-1, 1)
+
+        labels = self.label_encoder.fit_transform(labels)
 
         # Split data
         self.train_X, self.test_X, self.train_Y, self.test_Y = train_test_split(data, labels,
                                                                                 test_size=0.2,
                                                                                 random_state=self.seed)
 
-        # determine class weights
-        self.class_weights = class_weight.compute_class_weight(
-            class_weight='balanced',
-            classes=np.unique(self.train_Y),
-            y=self.train_Y.argmax(axis=1)
-        )
-        self.class_weights = dict(enumerate(self.class_weights))
-
     def get_train_data(self):
         return self.train_X.copy(), self.train_Y.copy()
 
-    def get_train_class_weights(self):
-        return self.class_weights
+    def get_train_size(self):
+        return len(self.test_Y)
 
     def get_test_data(self):
         return self.test_X.copy(), self.test_Y.copy()
 
 
 if __name__ == '__main__':
-    dataset = Dataset()
-    print(len(dataset.get_train_data()[0]))
-    print(dataset.get_train_class_weights())
+    data_filepath = os.path.join('..', 'data', 'full_dataset.tsv')
+    dataset = Dataset(data_filepath=data_filepath)
+
+    print(dataset.label_encoder.inverse_transform([[0, 1]]))
+
+    # x, y = dataset.get_train_data()
+    # print(x[:100])

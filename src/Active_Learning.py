@@ -2,8 +2,6 @@ import os
 
 import numpy as np
 
-from ADE_Detector import ADE_Detector
-
 
 def random_active_learning(labeled, unlabeled, annotation_budget):
     """
@@ -44,15 +42,17 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
     :param mini_queries: Number of samples to select before retraining model
     :return: the new labeled and unlabeled datasets
     """
-    model = ADE_Detector(dropout_rate=0.0) if model is None else model
+    if model is None:
+        raise ValueError("Model must not be Null")
 
     lx, ly = labeled
     ux, uy = unlabeled
 
+    # annotation budget greater than remaining samples
     if len(ux) < annotation_budget:
         return random_active_learning(labeled, unlabeled, annotation_budget)
 
-    for i, _ in enumerate(range(mini_queries)):
+    for i in range(mini_queries):
         print(f'Selecting samples with DAL: {i + 1}/{mini_queries}')
 
         # train classifier
