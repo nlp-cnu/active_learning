@@ -159,6 +159,9 @@ def train_models(labeled: tuple[list, np.ndarray], unlabeled: tuple[list, np.nda
                 selection_type = 'DAL'
                 model.reset_model()
                 (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
+                with open(os.path.join(SCORES_PATH, f'dal_dataset_{budget}_{len(lx)}.tsv', 'a+')) as dal_dataset:
+                    for sample, label in zip(lx, ly):
+                        dal_dataset.write(f'{sample}\t{label}\n')
 
             print(f'Training model with {len(lx)} samples selected by {selection_type}...')
             model.reset_model()
@@ -172,12 +175,12 @@ def train_models(labeled: tuple[list, np.ndarray], unlabeled: tuple[list, np.nda
 def active_learning_experiment():
     balanced_dataset_size = 1000
 
-    random_balanced_path = os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv')
-    dal_balanced_path = os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv')
-    random_path = os.path.join(SCORES_PATH, f'random_f1.csv')
-    dal_path = os.path.join(SCORES_PATH, f'dal_f1.csv')
-
-    for path in [random_balanced_path, dal_balanced_path, random_path, dal_path]:
+    for path in [
+        # os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
+        os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
+        # os.path.join(SCORES_PATH, f'random_f1.csv'),
+        # os.path.join(SCORES_PATH, f'dal_f1.csv')
+    ]:
 
         with open(path, 'w+') as f:
             f.write('f1_score,dataset_size\n')

@@ -64,22 +64,16 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
         preds = model.predict(ux)
 
         batch_selection = annotation_budget // mini_queries
-        selected_samples_path = os.path.join('..', 'active_learning_scores', f'DAL_{annotation_budget}_selected_samples.tsv')
-        with open(selected_samples_path, 'a', encoding='utf8') as f:
-            for _ in range(batch_selection):
-                max_idx = np.argmax(preds, axis=0)[1]
-                preds = np.delete(preds, max_idx, axis=0)
+        for _ in range(batch_selection):
+            max_idx = np.argmax(preds, axis=0)[1]
+            preds = np.delete(preds, max_idx, axis=0)
 
-                sample = ux.pop(max_idx)
-                label = uy[max_idx][1]
+            sample = ux.pop(max_idx)
+            label = uy[max_idx][1]
 
-                f.write(f'{sample}\t{label}\n')
-
-                lx.append(sample)
-                ly = np.concatenate((ly, [uy[max_idx]])) if len(ly) != 0 else np.array([uy[max_idx]])
-                uy = np.delete(uy, max_idx, axis=0)
-
-            f.write('-' * 30 + '\n')
+            lx.append(sample)
+            ly = np.concatenate((ly, [uy[max_idx]])) if len(ly) != 0 else np.array([uy[max_idx]])
+            uy = np.delete(uy, max_idx, axis=0)
 
         model.reset_model()
 
