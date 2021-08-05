@@ -123,8 +123,7 @@ def get_initial_datasets(initial_dataset_size=200, positive_class_idx=1, seed=SE
     return (lx, ly), (ux, uy)
 
 
-def train_models(labeled, unlabeled, budget,
-                 max_dataset_size, file_path):
+def train_models(labeled, unlabeled, budget, max_dataset_size, file_path):
     """
 
     :param labeled: The labeled dataset.
@@ -159,9 +158,10 @@ def train_models(labeled, unlabeled, budget,
                 selection_type = 'DAL'
                 model.reset_model()
                 (lx, ly), (ux, uy) = discriminative_active_learning((lx, ly), (ux, uy), budget, model)
-                with open(os.path.join(SCORES_PATH, f'dal_dataset_{budget}_{len(lx)}.tsv', 'a+')) as dal_dataset:
+                with open(os.path.join(SCORES_PATH, f'dal_dataset_{budget}_{len(lx)}.tsv'), 'a+') as dal_dataset:
                     for sample, label in zip(lx, ly):
                         dal_dataset.write(f'{sample}\t{label}\n')
+                    dal_dataset.write('-'*30)
 
             print(f'Training model with {len(lx)} samples selected by {selection_type}...')
             model.reset_model()
