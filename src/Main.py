@@ -123,8 +123,8 @@ def get_initial_datasets(initial_dataset_size=200, positive_class_idx=1, seed=SE
     return (lx, ly), (ux, uy)
 
 
-def train_models(labeled: tuple[list, np.ndarray], unlabeled: tuple[list, np.ndarray], budget: int,
-                 max_dataset_size: int, file_path: str):
+def train_models(labeled, unlabeled, budget,
+                 max_dataset_size, file_path):
     """
 
     :param labeled: The labeled dataset.
