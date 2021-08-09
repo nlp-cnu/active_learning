@@ -2,7 +2,7 @@
 
 # Hyper parameters
 DROPOUT = 0.0
-EPOCHS = 100
+EPOCHS = 50
 BATCH_SIZE = 1200
 MAX_TOKEN_LENGTH = 100  # 512 max
 BERT_BASE = 'bert-base-uncased'

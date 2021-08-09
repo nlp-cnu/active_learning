@@ -33,10 +33,10 @@ def main():
 
     root = os.path.join('..', 'active_learning_scores')
 
-    random = os.path.join(root, 'Random_ISEAR.csv')
-    dal = os.path.join(root, 'dal_f1_balanced_start_450.csv')
+    random = os.path.join(root, 'random_f1_balanced_start_1000.csv')
+    dal = os.path.join(root, 'dal_f1_balanced_start_1000.csv')
 
-    title = 'ISEAR_results'
+    title = 'Balanced_Start_1000_samples'
 
     plot(random, dal, title, use_error_bars=True)
 

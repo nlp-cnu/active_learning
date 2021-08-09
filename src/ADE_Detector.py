@@ -9,7 +9,7 @@ import tensorflow as tf
 from sklearn.metrics import classification_report, f1_score
 from sklearn.utils import class_weight
 from tensorflow.keras import Model, Sequential
-from tensorflow.keras.callbacks import *
+from tensorflow.keras.callbacks import Callback, EarlyStopping
 from tensorflow.keras.layers import *
 from transformers import TFAutoModel, AutoTokenizer
 
@@ -20,8 +20,8 @@ physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 
-class DALStopping(tf.keras.callbacks.Callback):
-    def __init__(self, monitor='accuracy', target_score=0.95):
+class DALStopping(Callback):
+    def __init__(self, monitor='accuracy', target_score=0.90):
         """
         Early stopping for DAL classifier.
         :param monitor: Metric to monitor. Defaults to accuracy.
@@ -51,7 +51,7 @@ class DALStopping(tf.keras.callbacks.Callback):
         return monitor_value
 
 
-class EarlyStoppingNoZero(tf.keras.callbacks.EarlyStopping):
+class EarlyStoppingGreaterThanZero(EarlyStopping):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -100,7 +100,7 @@ class SingleClassF1(tf.keras.metrics.Metric):
 
 class ADE_Detector:
     class __DataGenerator(tf.keras.utils.Sequence):
-        def __init__(self, x_set, y_set, batch_size, bert_model=BERT_BASE, shuffle=True):
+        def __init__(self, x_set, y_set, batch_size, bert_model=BERT_BASE, shuffle=True, seed=None):
             """
 
             :param x_set:
@@ -112,7 +112,7 @@ class ADE_Detector:
             self.x, self.y = x_set, y_set
             self.batch_size = batch_size
             self.shuffle = shuffle
-            self.rng = np.random.default_rng(seed=SEED)
+            self.rng = np.random.default_rng(seed=seed)
             self.tokenizer = AutoTokenizer.from_pretrained(bert_model, cache_dir='BERT_tokenizer')
 
         def __len__(self):
@@ -196,7 +196,6 @@ class ADE_Detector:
             classifier.add(Bidirectional(LSTM(
                 units=self.lstm_size,
                 return_sequences=layer != (self.num_lstm - 1),
-                kernel_initializer=tf.keras.initializers.RandomNormal(seed=SEED)
             )))
             classifier.add(Dropout(self.dropout_rate))
 
@@ -204,14 +203,12 @@ class ADE_Detector:
             classifier.add(Dense(
                 units=self.dense_size,
                 activation=self.dense_activation,
-                kernel_initializer=tf.keras.initializers.RandomNormal(seed=SEED)
             ))
             classifier.add(Dropout(self.dropout_rate))
 
         classifier.add(Dense(
             units=2,
             activation='softmax',
-            kernel_initializer=tf.keras.initializers.RandomNormal(seed=SEED)
         ))
 
         return classifier
@@ -255,7 +252,7 @@ class ADE_Detector:
         :return:
         """
 
-        train_data = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model)
+        train_data = self.__DataGenerator(x, y, BATCH_SIZE, bert_model=self.bert_model, seed=SEED)
         verbose = 2
 
         callbacks = [
@@ -270,7 +267,7 @@ class ADE_Detector:
             min_delta = 0.001
             patience = 5
             callbacks.append(
-                EarlyStoppingNoZero(
+                EarlyStoppingGreaterThanZero(
                     monitor=monitor,
                     mode=mode,
                     min_delta=min_delta,
@@ -316,7 +313,7 @@ class ADE_Detector:
 
         if not isinstance(x, tf.keras.utils.Sequence):
             tokenizer = self.__DataGenerator(x, None, None).tokenizer
-            tokenized = tokenizer(x, padding=True, truncation=True, max_length=512, return_tensors='tf')
+            tokenized = tokenizer(x, padding=True, truncation=True, max_length=MAX_TOKEN_LENGTH, return_tensors='tf')
             x = (tokenized['input_ids'], tokenized['attention_mask'])
             batch_size = BATCH_SIZE // 2
 
@@ -330,7 +327,7 @@ class ADE_Detector:
         :return: f1 score for positive class
         """
 
-        x = self.__DataGenerator(x, y_true, BATCH_SIZE, bert_model=self.bert_model)
+        x = self.__DataGenerator(x, y_true, BATCH_SIZE, bert_model=self.bert_model, seed=SEED)
         y_true = y_true.argmax(axis=1)
         y_pred = self.predict(x).argmax(axis=1)
 
