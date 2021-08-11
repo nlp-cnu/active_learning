@@ -36,27 +36,24 @@ class Dataset:
 
         labels = self.label_encoder.fit_transform(labels)
 
-        # Split data
+        # Split data 80% train | 20% test
         self.train_X, self.test_X, self.train_Y, self.test_Y = train_test_split(data, labels,
                                                                                 test_size=0.2,
                                                                                 random_state=self.seed)
-
+        # 0.8 / 0.1 = 0.125
+        # 70% train | 10% val | 20% test
         self.train_X, self.val_X, self.train_Y, self.val_Y = train_test_split(self.train_X, self.train_Y,
-                                                                              test_size=0.1,
+                                                                              test_size=0.125,
                                                                               random_state=self.seed)
 
     def get_train_data(self):
         return self.train_X.copy(), self.train_Y.copy()
-
-    def get_train_size(self):
-        return len(self.test_Y)
 
     def get_val_set(self):
         return self.val_X.copy(), self.val_Y.copy()
 
     def get_test_data(self):
         return self.test_X.copy(), self.test_Y.copy()
-
 
 
 if __name__ == '__main__':

@@ -29,16 +29,39 @@ def plot(random_path, dal_path, title, use_error_bars=True):
     plt.savefig(os.path.join('..', 'active_learning_scores', f'{title}.png'))
 
 
-def main():
+def wilcoxon(random_path, dal_path,):
+    from scipy.stats import wilcoxon, ttest_rel, ttest_ind
 
+    alpha = 0.01
+
+    random_df = pd.read_csv(random_path).groupby('dataset_size')
+    dal_df = pd.read_csv(dal_path).groupby('dataset_size')
+
+    print('Dataset Size | P-Value')
+    for size in range(200, 1050, 50):
+        try:
+            random_scores = random_df.get_group(size)['f1_score']
+            dal_scores = dal_df.get_group(size)['f1_score']
+            statistic, p_value = wilcoxon(random_scores, dal_scores)
+            print(f'{size:<12} | {p_value:<10.4f} |{" Not" if p_value < alpha else ""} Significantly Different')
+        except ValueError:
+            print(f'{size:<12} | {"nan":<10} | {"Identical"}')
+
+
+
+def main():
     root = os.path.join('..', 'active_learning_scores')
 
     random = os.path.join(root, 'random_f1_balanced_start_1000.csv')
     dal = os.path.join(root, 'dal_f1_balanced_start_1000.csv')
-
     title = 'Balanced_Start_1000_samples'
 
-    plot(random, dal, title, use_error_bars=True)
+    # random = os.path.join(root, 'random_f1.csv')
+    # dal = os.path.join(root, 'dal_f1.csv')
+    # title = 'Full_Dataset'
+
+    wilcoxon(random, dal)
+    # plot(random, dal, title, use_error_bars=True)
 
 
 if __name__ == '__main__':

@@ -180,8 +180,8 @@ def active_learning_experiment():
     balanced_dataset_size = 1000
 
     for path in [
-        os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
-        os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
+        # os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
+        # os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
         os.path.join(SCORES_PATH, 'random_f1.csv'),
         os.path.join(SCORES_PATH, 'dal_f1.csv'),
         # os.path.join(SCORES_PATH, 'Random_ISEAR.csv'),
@@ -205,7 +205,7 @@ def active_learning_experiment():
             for _ in range(5):
                 labeled = [], np.array([])
                 unlabeled = db.get_train_data()
-                train_models(labeled, unlabeled, budget, db.get_train_size(), path)
+                train_models(labeled, unlabeled, budget, None, path)
 
 
 if __name__ == '__main__':
