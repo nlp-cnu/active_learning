@@ -145,7 +145,6 @@ def train_models(labeled, unlabeled, budget, max_dataset_size, file_path, positi
     with open(file_path, 'a+') as f:
         if len(lx) > 0:
             print('Testing on initial dataset')
-
             model.fit(lx, ly, val_data=db.get_val_set(), use_class_weights=False)
             f1 = model.eval(test_x, test_y)
 
@@ -156,6 +155,7 @@ def train_models(labeled, unlabeled, budget, max_dataset_size, file_path, positi
             if 'random' in file_path.lower():
                 selection_type = 'random'
                 (lx, ly), (ux, uy) = random_active_learning((lx, ly), (ux, uy), budget)
+
             else:
                 selection_type = 'DAL'
                 model.reset_model()
@@ -163,7 +163,6 @@ def train_models(labeled, unlabeled, budget, max_dataset_size, file_path, positi
                 dataset_file = os.path.join(SCORES_PATH, f'dal_dataset_{budget}_{len(lx)}.tsv')
                 with open(dataset_file, 'a+', encoding='utf8') as dal_dataset:
                     for sample, label in zip(lx, ly):
-                        print(sample)
                         dal_dataset.write(f'{sample}\t{np.argmax(label)}\n')
                     dal_dataset.write('-'*30)
 
@@ -180,10 +179,10 @@ def active_learning_experiment():
     balanced_dataset_size = 1000
 
     for path in [
-        # os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
-        # os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
-        os.path.join(SCORES_PATH, 'random_f1.csv'),
-        os.path.join(SCORES_PATH, 'dal_f1.csv'),
+        os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
+        os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
+        # os.path.join(SCORES_PATH, 'random_f1.csv'),
+        # os.path.join(SCORES_PATH, 'dal_f1.csv'),
         # os.path.join(SCORES_PATH, 'Random_ISEAR.csv'),
         # os.path.join(SCORES_PATH, 'DAL_ISEAR.csv'),
     ]:
