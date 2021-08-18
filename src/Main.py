@@ -180,7 +180,7 @@ def active_learning_experiment():
 
     for path in [
         os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
-        os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
+        # os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
         # os.path.join(SCORES_PATH, 'random_f1.csv'),
         # os.path.join(SCORES_PATH, 'dal_f1.csv'),
         # os.path.join(SCORES_PATH, 'Random_ISEAR.csv'),
