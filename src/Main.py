@@ -22,7 +22,7 @@ if not os.path.exists(SCORES_PATH):
 TIME_STAMP = datetime.now().strftime('%m-%d_%H-%M-%S')
 
 isear_path = os.path.join('..', 'data', 'ISEAR.txt')
-db = Dataset(seed=SEED, data_filepath=None)
+db = Dataset(seed=SEED, data_filepath=isear_path)
 
 
 def cross_validation(model):
@@ -179,12 +179,12 @@ def active_learning_experiment():
     balanced_dataset_size = 1000
 
     for path in [
-        os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
+        # os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
         # os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
         # os.path.join(SCORES_PATH, 'random_f1.csv'),
         # os.path.join(SCORES_PATH, 'dal_f1.csv'),
-        # os.path.join(SCORES_PATH, 'Random_ISEAR.csv'),
-        # os.path.join(SCORES_PATH, 'DAL_ISEAR.csv'),
+        os.path.join(SCORES_PATH, 'Random_ISEAR.csv'),
+        os.path.join(SCORES_PATH, 'DAL_ISEAR.csv'),
     ]:
 
         with open(path, 'w+') as f:

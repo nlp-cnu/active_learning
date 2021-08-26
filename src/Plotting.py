@@ -28,7 +28,7 @@ def plot(random_path, dal_path, title, use_error_bars=True):
     plt.legend(loc='lower right')
     plt.show()
 
-    plt.savefig(os.path.join('..', 'active_learning_scores', f'{title}.png'))
+    # plt.savefig(os.path.join('..', 'active_learning_scores', f'{title}.png'))
 
 
 def significance_test(random_path, dal_path, alpha=0.01):
@@ -59,14 +59,15 @@ def significance_test(random_path, dal_path, alpha=0.01):
                   f'{p_value:<{spacing2}} |'
                   f'{"" if p_value < alpha else " Not"} Significantly Different')
         except ValueError as e:
+            print(e)
             print(f'{size:<{spacing1}} | {np.nan:<{spacing2}} | Identical')
 
 
 def main():
     root = os.path.join('..', 'active_learning_scores')
 
-    random = os.path.join(root, 'random_f1_balanced_start_1000.csv')
-    dal = os.path.join(root, 'dal_f1_balanced_start_1000.csv')
+    random = os.path.join(root, 'random_f1.csv')
+    dal = os.path.join(root, 'dal_f1.csv')
     title = 'Balanced Start'
 
     # random = os.path.join(root, 'random_f1.csv')
