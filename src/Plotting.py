@@ -51,24 +51,25 @@ def significance_test(random_path, dal_path, alpha=0.01):
     spacing2 = len(col2)
 
     for size in dataset_sizes:
-        random_scores = random_df.get_group(size)['f1_score']
-        dal_scores = dal_df.get_group(size)['f1_score']
-        try:
-            statistic, p_value = wilcoxon(random_scores, dal_scores, correction=True)
-            print(f'{size:<{spacing1}} | '
-                  f'{p_value:<{spacing2}} |'
-                  f'{"" if p_value < alpha else " Not"} Significantly Different')
-        except ValueError as e:
-            print(e)
-            print(f'{size:<{spacing1}} | {np.nan:<{spacing2}} | Identical')
+        if size < 500:
+            random_scores = random_df.get_group(size)['f1_score']
+            dal_scores = dal_df.get_group(size)['f1_score']
+            try:
+                statistic, p_value = wilcoxon(random_scores, dal_scores, correction=True)
+                print(f'{size:<{spacing1}} | '
+                      f'{p_value:<{spacing2}} |'
+                      f'{"" if p_value < alpha else " Not"} Significantly Different')
+            except ValueError as e:
+                print(e)
+                print(f'{size:<{spacing1}} | {np.nan:<{spacing2}} | Identical')
 
 
 def main():
     root = os.path.join('..', 'active_learning_scores')
 
-    random = os.path.join(root, 'random_f1.csv')
-    dal = os.path.join(root, 'dal_f1.csv')
-    title = 'Balanced Start'
+    random = os.path.join(root, 'Random_ISEAR.csv')
+    dal = os.path.join(root, 'DAL_ISEAR.csv')
+    title = 'ISEAR'
 
     # random = os.path.join(root, 'random_f1.csv')
     # dal = os.path.join(root, 'dal_f1.csv')

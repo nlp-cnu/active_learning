@@ -140,7 +140,8 @@ def train_models(labeled, unlabeled, budget, max_dataset_size, file_path, positi
     if max_dataset_size is None or max_dataset_size == 0:
         max_dataset_size = len(uy)
 
-    model = ADE_Detector(monitor_idx=positive_class_idx)
+    bert_model = BERT_BASE
+    model = ADE_Detector(bert_model=bert_model, monitor_idx=positive_class_idx)
 
     with open(file_path, 'a+') as f:
         if len(lx) > 0:
@@ -179,8 +180,8 @@ def active_learning_experiment():
     balanced_dataset_size = 1000
 
     for path in [
-        # os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
-        # os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
+        os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
+        os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
         # os.path.join(SCORES_PATH, 'random_f1.csv'),
         # os.path.join(SCORES_PATH, 'dal_f1.csv'),
         os.path.join(SCORES_PATH, 'Random_ISEAR.csv'),
