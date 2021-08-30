@@ -180,12 +180,12 @@ def active_learning_experiment():
     balanced_dataset_size = 1000
 
     for path in [
-        os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}.csv'),
-        os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}.csv'),
+        os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}_BERT.csv'),
+        os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}_BERT.csv'),
         # os.path.join(SCORES_PATH, 'random_f1.csv'),
         # os.path.join(SCORES_PATH, 'dal_f1.csv'),
-        os.path.join(SCORES_PATH, 'Random_ISEAR.csv'),
-        os.path.join(SCORES_PATH, 'DAL_ISEAR.csv'),
+        os.path.join(SCORES_PATH, 'Random_ISEAR_BERT.csv'),
+        os.path.join(SCORES_PATH, 'DAL_ISEAR_BERT.csv'),
     ]:
 
         with open(path, 'w+') as f:
