@@ -67,8 +67,8 @@ def significance_test(random_path, dal_path, alpha=0.01):
 def main():
     root = os.path.join('..', 'active_learning_scores')
 
-    random = os.path.join(root, 'Random_ISEAR.csv')
-    dal = os.path.join(root, 'DAL_ISEAR.csv')
+    random = os.path.join(root, 'Random_ISEAR_BERT.csv')
+    dal = os.path.join(root, 'DAL_ISEAR_BERT.csv')
     title = 'ISEAR'
 
     # random = os.path.join(root, 'random_f1.csv')

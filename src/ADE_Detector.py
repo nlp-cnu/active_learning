@@ -2,6 +2,8 @@ import os
 from datetime import datetime
 
 # Remove excessive tf log messages
+from keras.optimizer_v2.adam import Adam
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -150,7 +152,7 @@ class ADE_Detector:
     def __init__(self, model_name=None, bert_model=ROBERTA_TWITTER, dropout_rate=DROPOUT,
                  num_lstm=1, lstm_size=128,
                  num_dense=1, dense_size=64, dense_activation='gelu',
-                 optimizer='adam',
+                 optimizer=Adam(learning_rate=LR),
                  monitor_idx=1
                  ):
         """
@@ -177,7 +179,7 @@ class ADE_Detector:
 
         self.bert_model = bert_model
         self.bert = TFAutoModel.from_pretrained(self.bert_model, cache_dir='BERT_model')
-        self.bert.trainable = False
+        self.bert.trainable = TRAIN_BERT
 
         self.optimizer = optimizer
         self.model = self.__make_model()

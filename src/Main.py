@@ -179,9 +179,14 @@ def train_models(labeled, unlabeled, budget, max_dataset_size, file_path, positi
 def active_learning_experiment():
     balanced_dataset_size = 1000
 
+    # results w/o balancing
+    # results 5 epochs train bert
+    # results 50 w/ ES
+    #
+
     for path in [
-        os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}_BERT.csv'),
-        os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}_BERT.csv'),
+        # os.path.join(SCORES_PATH, f'random_f1_balanced_start_{balanced_dataset_size}_BERT.csv'),
+        # os.path.join(SCORES_PATH, f'dal_f1_balanced_start_{balanced_dataset_size}_BERT.csv'),
         # os.path.join(SCORES_PATH, 'random_f1.csv'),
         # os.path.join(SCORES_PATH, 'dal_f1.csv'),
         os.path.join(SCORES_PATH, 'Random_ISEAR_BERT.csv'),
