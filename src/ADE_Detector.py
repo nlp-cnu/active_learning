@@ -1,9 +1,6 @@
 import os
 from datetime import datetime
 
-# Remove excessive tf log messages
-from keras.optimizer_v2.adam import Adam
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
@@ -13,6 +10,7 @@ from sklearn.utils import class_weight
 from tensorflow.keras import Model, Sequential
 from tensorflow.keras.callbacks import Callback, EarlyStopping
 from tensorflow.keras.layers import *
+from tensorflow.keras.optimizers import Adam
 from transformers import TFAutoModel, AutoTokenizer
 
 from Utils import *
