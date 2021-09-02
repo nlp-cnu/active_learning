@@ -59,7 +59,7 @@ def discriminative_active_learning(labeled, unlabeled, annotation_budget, model=
         x = lx + ux
         y = np.array([[1, 0] for _ in range(len(lx))] + [[0, 1] for _ in range(len(ux))])
 
-        model.fit(x, y, use_class_weights=False)
+        model.fit(x, y, use_class_weights=False, epochs=100)
 
         preds = model.predict(ux)
 
